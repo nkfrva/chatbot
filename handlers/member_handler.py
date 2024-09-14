@@ -14,20 +14,20 @@ router = Router()
 @router.message(F.text.lower() == Commands.help)
 async def member_help(message: Message):
     role = BaseCommands.get_role(message.from_user.username)
-    if role == Role.Member or role == Role.Organizer or role == Role.Administrator:
+    if not (role == Role.Member or role == Role.Organizer or role == Role.Administrator):
         await message.answer(
-            Messages.help_message_member,
+            Messages.error_message,
         )
     else:
         await message.answer(
-            Messages.error_message,
+            Messages.help_message_member,
         )
 
 
 @router.message(F.text.lower() == Commands.enter_team_token)
 async def enter_team_token(message: Message):
     role = BaseCommands.get_role(message.from_user.username)
-    if role != Role.Member and role != Role.Organizer and role != Role.Administrator:
+    if not (role == Role.Member or role == Role.Organizer or role == Role.Administrator):
         await message.answer(
             Messages.error_message,
         )

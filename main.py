@@ -3,10 +3,10 @@ import logging
 from aiogram import Bot, Dispatcher
 from config.init_db import init_db
 from handlers import base_handler, member_handler
-
-
+import uuid
+from repository import role_repository
+from model import role
 logging.basicConfig(level=logging.INFO)
-
 
 async def main():
     await init_db()
@@ -20,4 +20,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.get_event_loop().run_until_complete(main())

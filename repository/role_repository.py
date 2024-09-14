@@ -6,13 +6,12 @@ from sqlmodel import Session
 from model.role import Role
 from config.init_db import get_session
 
-
 class RoleRepository:
     async def get_roles(self) -> list[Role]:
         async with get_session() as session:
-            result = await session.exec(select(Role)).all()
-            return [Role(uuid=role.uuid,
-                         title=role.title) for role in result]
+            result = await session.execute(select(Role))
+            return result.scalars().all()
+
 
     async def get_role_by_id(self, role_id: uuid.UUID) -> Role:
         async with get_session() as session:

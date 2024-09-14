@@ -12,5 +12,6 @@ class Team(BaseClass):
     key: UUID = Column(UUID, default=uuid4, nullable=False, primary_key=False)
     name: str = Column(String, default="Loxi", nullable=False)
 
+    members = relationship("Member", back_populates="team")
     # один к одному
     team_statistic_uuid: UUID = Column(UUID, ForeignKey("team_statistic.uuid"), nullable=False, index=True)
