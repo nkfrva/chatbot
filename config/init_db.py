@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 
 from model import BaseClass
 
-engine = create_async_engine("postgresql+asyncpg://postgres:1@localhost:5432/postgres", pool_pre_ping=True,
+engine = create_async_engine("postgresql+asyncpg://postgres:123@localhost:5432/postgres", pool_pre_ping=True,
     pool_recycle=3600)
 
 
