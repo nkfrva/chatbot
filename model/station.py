@@ -11,6 +11,11 @@ class Station(BaseClass):
     title: str = Column(String, default="student", nullable=False)
     description: str = Column(String, default="student", nullable=False)
 
+    team_uuid: UUID = Column(UUID, ForeignKey("team.uuid"), nullable=True, index=True)
+    team = relationship("Team", back_populates="stations", uselist=False)
+    # key_uuid: UUID = Column(UUID, ForeignKey("key.uuid"), nullable=False, index=True)
+    # keys = relationship("Key", back_populates="tasks", uselist=False)
+
     # max time - добавить максимальное время на станции
     # организаторам добавить возможность освободить станцию
     # если команда игнориурет станцию - мы ее временно блокируем (сценарий взять у оргов)

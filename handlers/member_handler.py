@@ -1,40 +1,45 @@
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, ReplyKeyboardRemove
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from repository.member_repository import MemberRepository
+from repository.team_repository import TeamRepository
+from model import Member
+from aiogram.utils import markdown as md
 
-from database_command.base_commands import BaseCommands
-
-from config.command import Commands
-from config.messages import Messages
-from shared.role import Role
 
 router = Router()
 
 
-@router.message(F.text.lower() == Commands.help)
-async def member_help(message: Message):
-    role = BaseCommands.get_role(message.from_user.username)
-    if not (role == Role.Member or role == Role.Organizer or role == Role.Administrator):
-        await message.answer(
-            Messages.error_message,
-        )
+class MemberCreationStates(StatesGroup):
+    team_token = State()
+
+
+@router.message(Command('enter_team_token'))
+async def enter_team_token(message: Message, state: FSMContext):
+    await message.answer("Введите уникальный идентификатор команды для присоединения:")
+    await state.set_state(MemberCreationStates.team_token)
+
+
+@router.message(MemberCreationStates.team_token)
+async def handle_team_token(message: Message, state: FSMContext):
+    team_token = message.text
+
+    member_repository = MemberRepository()
+    team_repository = TeamRepository()
+
+    existing_team = await team_repository.get_team_id_by_token(team_token)
+    if existing_team:
+        new_member = Member(team_uuid=existing_team)
+        team = await team_repository.get_team_by_id(existing_team)
+        await member_repository.create_member(new_member)
+        await message.answer(f"вы успешно присоединились к команде: {md.bold(team.name)}")
     else:
-        await message.answer(
-            Messages.help_message_member,
-        )
+        await message.answer("Команда не найдена.")
+
+    await state.clear()
 
 
-@router.message(F.text.lower() == Commands.enter_team_token)
-async def enter_team_token(message: Message):
-    role = BaseCommands.get_role(message.from_user.username)
-    if not (role == Role.Member or role == Role.Organizer or role == Role.Administrator):
-        await message.answer(
-            Messages.error_message,
-        )
-
-    team_token = 5
-    await message.answer(
-        f'Ваш токен {team_token}'
-    )
 
 

@@ -13,4 +13,3 @@ class Role(BaseClass):
     # одна роль - много команд/участников
     # команда никак не связана с ролями
     commands = relationship("Command", back_populates="roles", cascade="delete")
-    members = relationship("Member", back_populates="roles")

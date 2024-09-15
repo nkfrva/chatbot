@@ -25,6 +25,12 @@ class TeamRepository:
             team = result.scalars().first()
             return team.uuid
 
+    async def get_team_id_by_token(self, team_token: str) ->Any:
+        async with get_session() as session:
+            result = await session.execute(select(Team).where(Team.key == team_token))
+            team = result.scalars().first()
+            return team.uuid
+
     async def create_team(self, new_team: Team) -> Team:
         async with get_session() as session:
             session.add(new_team)

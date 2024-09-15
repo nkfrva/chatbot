@@ -1,6 +1,5 @@
 from .base_class import BaseClass
 from .command import Command
-from .key import Key
 from .leadboard import LeadBoard
 from.member import Member
 from .role import Role

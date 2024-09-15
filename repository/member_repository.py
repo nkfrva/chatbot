@@ -10,20 +10,16 @@ from config.init_db import get_session
 class MemberRepository:
     async def get_members(self) -> list[Member]:
         async with get_session() as session:
-            result = await session.exec(select(Member)).all()
-            return [Member(uuid=member.uuid,
-                           team_uuid=member.team_uuid,
-                           role_uuid=member.role_uuid) for member in result]
+            result = await session.exec(select(Member))
+            return result.scalars().all()
 
     async def get_member_by_id(self, member_id: uuid.UUID) -> Member:
         async with get_session() as session:
             result = await session.get(Member, member_id)
             return result
 
-    async def create_member(self, team_uuid: uuid.UUID, role_uuid: uuid.UUID) -> Member:
+    async def create_member(self, new_member: Member) -> Member:
         async with get_session() as session:
-            new_member = Member(team_uuid=team_uuid,
-                                role_uuid=role_uuid)
             session.add(new_member)
             await session.commit()
             await session.refresh(new_member)

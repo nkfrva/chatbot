@@ -51,4 +51,3 @@ async def handle_team_name(message: types.Message, state: FSMContext):
             await message.answer("Команда не найдена.")
 
     await state.clear()
-

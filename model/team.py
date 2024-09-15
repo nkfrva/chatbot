@@ -17,3 +17,5 @@ class Team(BaseClass):
     # один к одному
     # не надо хранить uuid статистики!!!
     team_statistic = relationship("TeamStatistic", back_populates="teams", uselist=False)
+
+    stations = relationship("Station", back_populates="team", uselist=False)

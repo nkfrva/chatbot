@@ -15,7 +15,7 @@ async def main():
     bot = Bot(token="7482379369:AAH-3lqEjFSN8CyUsjfr8W5Xdu5mcFc8bO4")
     dp = Dispatcher()
 
-    dp.include_routers(base_handler.router, member_handler.router, team_handler.router, task_handler.router)
+    dp.include_routers(member_handler.router, team_handler.router, task_handler.router)
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 

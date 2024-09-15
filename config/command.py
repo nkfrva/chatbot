@@ -35,6 +35,6 @@ class Commands:
 
     enter_team_token = 'ввести токен команды'
     post_answer = 'отправить ответ'
-    get_next_station = 'получить следющую станцию'
+    get_next_station = 'получить следующую станцию'
 
     # endregion

@@ -4,9 +4,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils import markdown as md
 
-from model import Task, Key
+from model import Task
 from repository.task_repository import TaskRepository
-from repository.key_repository import KeyRepository
 
 router = Router()
 
@@ -16,8 +15,11 @@ class TaskCreationStates(StatesGroup):
     description = State()
     action = State()
     key = State()
+    user_response = State()
 
 
+# Все для добавления и удаления заданий
+# --------------------------------------------------------------------------------
 @router.message(Command('add_task'))
 async def start_add_task(message: types.Message, state: FSMContext):
     await message.answer("Введите заголовок задания для добавления:")
@@ -46,13 +48,9 @@ async def handle_task_title(message: types.Message, state: FSMContext):
 
     elif action == 'delete':
         task_repository = TaskRepository()
-        key_repository = KeyRepository()
+        # key_repository = KeyRepository()
         existing_task = await task_repository.get_task_id_by_title(task_title)
         if existing_task:
-            task = await task_repository.get_task_by_id(existing_task)
-            if task:
-                await key_repository.delete_key_by_id(task.key_uuid)
-                await message.answer(f"Ключ от задания удален")
             await task_repository.delete_task_by_id(existing_task)
             await message.answer(f"Задание удалено: {md.bold(existing_task.title)}")
         else:
@@ -77,21 +75,22 @@ async def handle_task_answer(message: types.Message, state: FSMContext):
     data = await state.get_data()
     task_key = message.text
 
-    new_key = Key(key=task_key)
-    key_repository = KeyRepository()
-    created_key = await key_repository.create_key(new_key)
-    await message.answer(f"Ключ создан: {md.bold(created_key.key)}")
-    print("1")
-
     task_title = data.get('title')
     task_description = data.get('description')
-    print(task_title)
-    print(task_description)
-    new_task = Task(title=task_title, description=task_description, key_uuid=created_key.uuid)
+    new_task = Task(title=task_title, description=task_description, key=task_key)
+
     task_repository = TaskRepository()
     created_task = await task_repository.create_task(new_task)
-    print("2")
 
     await message.answer(f"Задание создано: {md.bold(created_task.title)}")
     await state.clear()
 
+# --------------------------------------------------------------------------------
+
+
+# Проверка правильности ответа
+# --------------------------------------------------------------------------------
+# @router.message(Command('post_answer'))
+# async def start_post_answer(message: types.Message, state: FSMContext):
+#     await message.answer("Введите ваш ответ:")
+#     await state.set_state(TaskCreationStates.user_response)
