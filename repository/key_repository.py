@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from sqlmodel import select
 from sqlmodel import Session
@@ -10,21 +11,24 @@ from config.init_db import get_session
 class KeyRepository:
     async def get_keys(self) -> list[Key]:
         async with get_session() as session:
-            result = await session.scalars(select(Key)).all()
-            return [Key(uuid=key.uuid,
-                        key=key.key,
-                        task_uuid=key.task_uuid) for key in result]
+            result = await session.scalars(select(Key))
+            return result.scalars().all()
 
     async def get_key_by_id(self, key_id: uuid.UUID) -> Key:
         async with get_session() as session:
             result = await session.get(Key, key_id)
             return result
 
-    async def create_key(self, key_create: dict, task_uuid: uuid) -> Key:
-        async with get_session() as session:
-            new_key = Key(key=key_create["key"],
-                          task_uuid=task_uuid)
 
+    async def get_key_id_by_key(self, key_title: str) -> Any:
+        async with get_session() as session:
+            result = await session.execute(select(Key).where(Key.key == key_title))
+            key = result.scalars().first()
+            return key.uuid
+
+
+    async def create_key(self, new_key: Key) -> Key:
+        async with get_session() as session:
             session.add(new_key)
             await session.commit()
             await session.refresh(new_key)

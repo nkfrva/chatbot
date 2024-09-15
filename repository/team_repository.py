@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from sqlmodel import select
 from sqlmodel import Session
@@ -18,13 +19,18 @@ class TeamRepository:
             result = await session.get(Team, team_id)
             return result
 
+    async def get_team_id_by_name(self, team_name: str) -> Any:
+        async with get_session() as session:
+            result = await session.execute(select(Team).where(Team.name == team_name))
+            team = result.scalars().first()
+            return team.uuid
+
     async def create_team(self, new_team: Team) -> Team:
         async with get_session() as session:
             session.add(new_team)
             await session.commit()
             await session.refresh(new_team)
             return new_team
-
 
     async def delete_team_by_id(self, team_id: uuid.UUID) -> bool:
         async with get_session() as session:

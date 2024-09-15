@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from sqlmodel import select
 from sqlmodel import Session
@@ -18,12 +19,14 @@ class TaskRepository:
             result = await session.get(Task, task_id)
             return result
 
-    async def create_task(self, task_create: dict, key_uuid: uuid.UUID) -> Task:
+    async def get_task_id_by_title(self, task_title: str) -> Any:
         async with get_session() as session:
-            new_task = Task(title=task_create["title"],
-                            description=task_create["description"],
-                            key_uuid=key_uuid)
+            result = await session.execute(select(Task).where(Task.title == task_title))
+            task = result.scalars().first()
+            return task.uuid
 
+    async def create_task(self, new_task: Task) -> Task:
+        async with get_session() as session:
             session.add(new_task)
             await session.commit()
             await session.refresh(new_task)

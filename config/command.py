@@ -7,7 +7,6 @@ class Commands:
     # region Admin
     add_organizer = 'добавить организатора'
     remove_organizer = 'удалить организатора'
-    update_organizer = 'обновить организатора'
 
     import_teams = 'импортировать команды'
     import_members = 'импортировать участников'
@@ -18,11 +17,9 @@ class Commands:
 
     add_team = 'добавить команду'
     remove_team = 'удалить команду'
-    update_team = 'обновить команду'
 
     add_task = 'добавить задание'
     remove_task = 'удалить задание'
-    update_task = 'обновить задание'
 
     ban_user = 'забанить игрока'
     unban_user = 'разбанить игрока'
