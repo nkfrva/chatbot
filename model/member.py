@@ -9,5 +9,6 @@ class Member(BaseClass):
 
     uuid: UUID = Column(UUID, default=uuid4, nullable=False, primary_key=True)
     team_uuid: UUID = Column(UUID, ForeignKey("team.uuid"), nullable=False, index=True)
+    user_id: str = Column(String, default="111", nullable=False)
 
     teams = relationship("Team", back_populates="members")

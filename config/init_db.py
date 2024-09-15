@@ -5,7 +5,7 @@ import asyncio
 
 from model import BaseClass
 
-engine = create_async_engine("postgresql+asyncpg://postgres:1@localhost:5432/test5", pool_pre_ping=True,
+engine = create_async_engine("postgresql+asyncpg://postgres:1@localhost:5432/test9", pool_pre_ping=True,
     pool_recycle=3600)
 
 

@@ -18,6 +18,12 @@ class MemberRepository:
             result = await session.get(Member, member_id)
             return result
 
+    async def get_member_by_user_id(self, user_id: str) -> Member:
+        async with get_session() as session:
+            result = await session.execute(select(Member).where(Member.user_id == user_id))
+            station = result.scalars().first()
+            return station
+
     async def create_member(self, new_member: Member) -> Member:
         async with get_session() as session:
             session.add(new_member)

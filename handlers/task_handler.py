@@ -7,6 +7,8 @@ from aiogram.utils import markdown as md
 from model import Task
 from repository.task_repository import TaskRepository
 
+from database_command import member_commands
+
 router = Router()
 
 
@@ -15,7 +17,7 @@ class TaskCreationStates(StatesGroup):
     description = State()
     action = State()
     key = State()
-    user_response = State()
+    user_key = State()
 
 
 # Все для добавления и удаления заданий
@@ -88,9 +90,47 @@ async def handle_task_answer(message: types.Message, state: FSMContext):
 # --------------------------------------------------------------------------------
 
 
-# Проверка правильности ответа
+# Когда выдана станция мы можем посмотреть
+# 1. /get_station - посмотреть текущую станцию
+# 2. /get_task - посмотреть текущее задание
+# 3. /push_key - отправить ответ на проверку
 # --------------------------------------------------------------------------------
-# @router.message(Command('post_answer'))
-# async def start_post_answer(message: types.Message, state: FSMContext):
-#     await message.answer("Введите ваш ответ:")
-#     await state.set_state(TaskCreationStates.user_response)
+@router.message(Command('get_station'))
+async def get_station(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    station = await member_commands.get_station(str(user_id))
+    if station:
+        await message.answer(f"Ваша текущая станция: {md.bold(station.title)} \n {md.bold(station.description)}")
+    else:
+        await message.answer("Вы не прикреплены к станции")
+
+
+@router.message(Command('get_task'))
+async def get_task(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    task = await member_commands.get_task(str(user_id))
+    if task:
+        await message.answer(f"Ваша текущая станция: {md.bold(task.title)} \n {md.bold(task.description)}")
+    else:
+        await message.answer("На данный момент нет активных заданий")
+
+
+@router.message(Command('push_key'))
+async def push_key(message: types.Message, state: FSMContext):
+    await message.answer("Введите ответ на задание:")
+    await state.set_state(TaskCreationStates.user_key)
+
+
+@router.message(TaskCreationStates.user_key)
+async def handle_user_key(message: types.Message, state: FSMContext):
+    task_user_key = message.text
+    data = await state.get_data()
+
+    user_id = message.from_user.id
+    bool_correctness = await member_commands.check_correct_response(str(user_id), task_user_key)
+    if bool_correctness:
+        await message.answer(f"Успех! Ответ верный. Далее вы переходите на следующую станцию")
+    else:
+        await message.answer("Ответ не верный")
+
+    await state.clear()
