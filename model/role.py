@@ -11,5 +11,6 @@ class Role(BaseClass):
     title: str = Column(String, default="student", nullable=False)
 
     # одна роль - много команд/участников
-    commands = relationship("Command", back_populates="role", cascade="delete")
-    members = relationship("Member", back_populates="role")
+    # команда никак не связана с ролями
+    commands = relationship("Command", back_populates="roles", cascade="delete")
+    members = relationship("Member", back_populates="roles")

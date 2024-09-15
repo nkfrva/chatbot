@@ -15,4 +15,4 @@ class Command(BaseClass):
 
     # много команд - одна роль
     role_uuid: UUID = Column(UUID, ForeignKey("role.uuid"), nullable=False, index=True)
-    role = relationship("Role", back_populates="commands")
+    roles = relationship("Role", back_populates="commands")

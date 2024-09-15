@@ -10,11 +10,8 @@ from config.init_db import get_session
 class TaskRepository:
     async def get_tasks(self) -> list[Task]:
         async with get_session() as session:
-            result = await session.exec(select(Task)).all()
-            return [Task(uuid=task.uuid,
-                         title=task.title,
-                         description=task.description,
-                         key_uuid=task.key_uuid) for task in result]
+            result = await session.exec(select(Task))
+            return result.scalars().all()
 
     async def get_task_by_id(self, task_id: uuid.UUID) -> Task:
         async with get_session() as session:

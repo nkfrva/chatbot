@@ -10,27 +10,21 @@ from config.init_db import get_session
 class TeamRepository:
     async def get_teams(self) -> list[Team]:
         async with get_session() as session:
-            result = await session.exec(select(Team)).all()
-            return [Team(uuid=team.uuid,
-                         key=team.key,
-                         name=team.name,
-                         team_statistic_uuid=team.team_statistic_uuid) for team in result]
+            result = await session.exec(select(Team))
+            return result.scalars().all()
 
     async def get_team_by_id(self, team_id: uuid.UUID) -> Team:
         async with get_session() as session:
             result = await session.get(Team, team_id)
             return result
 
-    async def create_team(self, team_create: dict, team_statistic_uuid: uuid.UUID) -> Team:
+    async def create_team(self, new_team: Team) -> Team:
         async with get_session() as session:
-            new_team = Team(key=team_create["key"],
-                            name=team_create["name"],
-                            team_statistic_uuid=team_statistic_uuid)
-
             session.add(new_team)
             await session.commit()
             await session.refresh(new_team)
             return new_team
+
 
     async def delete_team_by_id(self, team_id: uuid.UUID) -> bool:
         async with get_session() as session:

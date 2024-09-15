@@ -12,5 +12,5 @@ class Key(BaseClass):
     key: str = Column(String, default="Loxi", nullable=False)
 
     # один к одному
-    task_uuid: UUID = Column(UUID, ForeignKey("task.uuid"), nullable=False, index=True)
-    #task = relationship("Task", back_populates="key", uselist=False)
+    # не хранит uuid задания!!!!
+    tasks = relationship("Task", back_populates="keys", uselist=False)

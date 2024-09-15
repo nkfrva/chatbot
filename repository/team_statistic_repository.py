@@ -10,21 +10,16 @@ from config.init_db import get_session
 class TeamStatisticRepository:
     async def get_team_statistics(self) -> list[TeamStatistic]:
         async with get_session() as session:
-            result = await session.exec(select(TeamStatistic)).all()
-            return [TeamStatistic(uuid=team_statistic.uuid,
-                                  point=team_statistic.point,
-                                  team_uuid=team_statistic.team_uuid) for team_statistic in result]
+            result = await session.exec(select(TeamStatistic))
+            return result.scalars().all()
 
     async def get_team_statistic_by_id(self, team_statistic_id: uuid.UUID) -> TeamStatistic:
         async with get_session() as session:
             result = await session.get(TeamStatistic, team_statistic_id)
             return result
 
-    async def create_team_statistic(self, statistic_create: dict, team_uuid: uuid.UUID) -> TeamStatistic:
+    async def create_team_statistic(self, new_statistic: TeamStatistic) -> TeamStatistic:
         async with get_session() as session:
-            new_statistic = TeamStatistic(point=statistic_create["point"],
-                                          team_uuid=team_uuid)
-
             session.add(new_statistic)
             await session.commit()
             await session.refresh(new_statistic)

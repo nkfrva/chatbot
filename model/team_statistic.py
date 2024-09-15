@@ -11,4 +11,6 @@ class TeamStatistic(BaseClass):
     point: int = Column(Integer, default=0)
 
     # один к одному
+    # хранит uuid команды!
     team_uuid: UUID = Column(UUID, ForeignKey("team.uuid"), nullable=False, index=True)
+    teams = relationship("Team", back_populates="team_statistic", uselist=False)

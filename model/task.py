@@ -12,4 +12,6 @@ class Task(BaseClass):
     title: str = Column(String, default="student", nullable=False)
     description: str = Column(String, default="student", nullable=False)
 
+    # хранит uuid ответа
     key_uuid: UUID = Column(UUID, ForeignKey("key.uuid"), nullable=False, index=True)
+    keys = relationship("Key", back_populates="tasks", uselist=False)
