@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from repository.member_repository import MemberRepository
 
 
-bot = Bot(os.getenv('BOT_TOKEN2'))
+bot = Bot(os.getenv('BOT_TOKEN'))
 dp = Dispatcher()
 
 logging.basicConfig(level=logging.INFO)

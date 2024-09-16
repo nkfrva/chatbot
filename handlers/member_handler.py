@@ -32,7 +32,7 @@ async def handle_team_token(message: Message, state: FSMContext):
 
     existing_team = await team_repository.get_team_id_by_token(team_token)
     if existing_team:
-        new_member = Member(team_uuid=existing_team, user_id=str(user_id))
+        new_member = Member(team_uuid=existing_team, user_id=str(user_id), username=message.from_user.username)
         team = await team_repository.get_team_by_id(existing_team)
         await member_repository.create_member(new_member)
         await message.answer(f"вы успешно присоединились к команде: {md.bold(team.name)}")
