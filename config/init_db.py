@@ -1,12 +1,12 @@
 from contextlib import asynccontextmanager
-
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-import asyncio
-
+import os
+from dotenv import load_dotenv
 from model import BaseClass
 
-engine = create_async_engine("postgresql+asyncpg://postgres:1@localhost:5432/test9", pool_pre_ping=True,
-    pool_recycle=3600)
+
+load_dotenv()
+engine = create_async_engine(os.getenv('CONNECTION_STRING'), pool_pre_ping=True, pool_recycle=3600)
 
 
 async def init_db():
