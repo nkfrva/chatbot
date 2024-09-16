@@ -17,6 +17,7 @@ class CommandRepository:
                             action=command.action,
                             role_uuid=command.role_uuid) for command in result]
 
+
     async def get_command_by_id(self, command_id: uuid.UUID) -> Command:
         async with get_session() as session:
             result = await session.get(Command, command_id)

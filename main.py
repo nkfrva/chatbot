@@ -5,8 +5,10 @@ from config.init_db import init_db
 from handlers import base_handler, member_handler, team_handler, task_handler, station_handler
 import os
 from dotenv import load_dotenv
+from repository.member_repository import MemberRepository
 
-bot = Bot(os.getenv('BOT_TOKEN'))
+
+bot = Bot(os.getenv('BOT_TOKEN2'))
 dp = Dispatcher()
 
 logging.basicConfig(level=logging.INFO)

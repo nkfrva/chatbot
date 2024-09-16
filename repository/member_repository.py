@@ -10,7 +10,12 @@ from config.init_db import get_session
 class MemberRepository:
     async def get_members(self) -> list[Member]:
         async with get_session() as session:
-            result = await session.exec(select(Member))
+            result = await session.execute(select(Member))
+            return result.scalars().all()
+
+    async def get_members_id(self) -> list[int]:
+        async with get_session() as session:
+            result = await session.execute(select(Member.user_id))
             return result.scalars().all()
 
     async def get_member_by_id(self, member_id: uuid.UUID) -> Member:

@@ -11,6 +11,9 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from main import bot
+from repository.member_repository import MemberRepository
+from repository.team_repository import TeamRepository
+
 
 router = Router()
 
@@ -22,17 +25,20 @@ class MyStates(StatesGroup):
 
 @router.message(Command('mail'))
 async def start_add_task(message: types.Message, state: FSMContext):
-    await message.answer("Введите заголовок задания для добавления:")
+    await message.answer("Введите сообщение")
     await state.set_state(MyStates.message)
 
 
 @router.message(MyStates.message)
 async def handle_team_token(message: Message, state: FSMContext):
-    user_id = message.from_user.id
+    member_repository = MemberRepository()
+    users = await member_repository.get_members_id()
     m = message.text
-    await bot.send_message(726067906, m)
-    await bot.send_message(798162397, m)
+    [await bot.send_message(user, m) for user in users]
+
     await state.clear()
+
+
 
 
 

@@ -1,5 +1,6 @@
 from shared.role import Role
-
+from repository.member_repository import MemberRepository
+from repository.team_repository import TeamRepository
 
 class BaseCommands:
 
@@ -13,4 +14,7 @@ class BaseCommands:
 
 
     async def get_all_user_ids(self):
-        return [726067906, 798162397]
+        member_repository = MemberRepository()
+
+
+        return [726067906, 798162397, 588035306]

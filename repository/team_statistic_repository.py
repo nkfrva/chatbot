@@ -10,7 +10,7 @@ from config.init_db import get_session
 class TeamStatisticRepository:
     async def get_team_statistics(self) -> list[TeamStatistic]:
         async with get_session() as session:
-            result = await session.exec(select(TeamStatistic))
+            result = await session.execute(select(TeamStatistic))
             return result.scalars().all()
 
     async def get_team_statistic_by_id(self, team_statistic_id: uuid.UUID) -> TeamStatistic:

@@ -11,13 +11,15 @@ from config.init_db import get_session
 class TaskRepository:
     async def get_tasks(self) -> list[Task]:
         async with get_session() as session:
-            result = await session.exec(select(Task))
+            result = await session.execute(select(Task))
             return result.scalars().all()
+
 
     async def get_task_by_id(self, task_id: uuid.UUID) -> Task:
         async with get_session() as session:
             result = await session.get(Task, task_id)
             return result
+
 
     async def get_task_id_by_title(self, task_title: str) -> Any:
         async with get_session() as session:
@@ -25,12 +27,14 @@ class TaskRepository:
             task = result.scalars().first()
             return task.uuid
 
+
     async def create_task(self, new_task: Task) -> Task:
         async with get_session() as session:
             session.add(new_task)
             await session.commit()
             await session.refresh(new_task)
             return new_task
+
 
     async def delete_task_by_id(self, task_id: uuid.UUID) -> bool:
         async with get_session() as session:

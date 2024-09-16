@@ -11,7 +11,7 @@ from config.init_db import get_session
 class StationRepository:
     async def get_stations(self) -> list[Station]:
         async with get_session() as session:
-            result = await session.exec(select(Station))
+            result = await session.execute(select(Station))
             return result.scalars().all()
 
     async def get_station_by_id(self, station_id: uuid.UUID) -> Station:

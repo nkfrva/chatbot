@@ -11,7 +11,7 @@ class LeadBoardRepository:
     class LeadBoardRepository:
         async def get_entries_from_leadboard(self) -> list[LeadBoard]:
             async with get_session() as session:
-                result = await session.exec(select(LeadBoard)).all()
+                result = await session.execute(select(LeadBoard)).all()
                 return [LeadBoard(uuid=team_entries.uuid,
                                   key=team_entries.key,
                                   team_uuid=team_entries.team_uuid,
