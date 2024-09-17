@@ -11,6 +11,5 @@ class BaseCommands:
         # query
         return Role.Member
 
-
     async def get_all_user_ids(self):
         return [726067906, 798162397]

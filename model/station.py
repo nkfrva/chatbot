@@ -16,6 +16,9 @@ class Station(BaseClass):
 
     task_uuid: UUID = Column(UUID, ForeignKey("task.uuid"), nullable=True, index=True)
     tasks = relationship("Task", back_populates="stations", uselist=False)
+
+    team_statistic = relationship("TeamStatistic", back_populates="stations", uselist=False)
+
     # key_uuid: UUID = Column(UUID, ForeignKey("key.uuid"), nullable=False, index=True)
     # keys = relationship("Key", back_populates="tasks", uselist=False)
 

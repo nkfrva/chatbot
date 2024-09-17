@@ -3,9 +3,12 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils import markdown as md
+from datetime import datetime
 
-from model import Station
+from model import Station, TeamStatistic
 from repository.station_repository import StationRepository
+from repository.team_repository import TeamRepository
+from repository.team_statistic_repository import TeamStatisticRepository
 
 from database_command import member_commands
 
@@ -19,7 +22,7 @@ class StationCreationStates(StatesGroup):
     task_uuid = State()
 
 
-# Все для добавления и удаления заданий
+# Все для добавления и удаления станции
 # --------------------------------------------------------------------------------
 @router.message(Command('add_station'))
 async def start_add_station(message: types.Message, state: FSMContext):
@@ -51,8 +54,8 @@ async def handle_station_title(message: types.Message, state: FSMContext):
         station_repository = StationRepository()
         existing_station = await station_repository.get_station_id_by_title(station_title)
         if existing_station:
-            await station_repository.delete_station_by_id(existing_station)
             await message.answer(f"Станция удалена: {md.bold(existing_station.title)}")
+            await station_repository.delete_station_by_id(existing_station)
         else:
             await message.answer("Станция не найдена")
 
@@ -84,5 +87,38 @@ async def handle_task_uuid(message: types.Message, state: FSMContext):
 
     await message.answer(f"Станция создана: {md.bold(created_station.title)}")
     await state.clear()
+
+# --------------------------------------------------------------------------------
+
+
+# Автоматическая разадача станций по каманде
+# --------------------------------------------------------------------------------
+@router.message(Command('start_active'))
+async def start_auto_get_station(message: types.Message):
+    await message.answer("Автоматическая разадача станций запущена")
+    station_repository = StationRepository()
+    team_repository = TeamRepository()
+
+    stations = await station_repository.get_stations()
+    teams = await team_repository.get_teams()
+
+    if len(stations) < len(teams):
+        await message.answer(f"Пожалуйста, убедитесь, что количество станций превышает количество команд")
+
+    counter = 0
+    for station in stations:
+        await station_repository.update_station(station_id=station.uuid, team_uuid=teams[counter].uuid)
+        now = datetime.now()
+        current_time = now.strftime("%H:%M:%S")
+        print("Current Time =", current_time)
+
+        new_statistic = TeamStatistic(start_time=current_time, station_uuid=station.uuid, team_uuid=teams[counter].uuid)
+
+        team_statistic_repository = TeamStatisticRepository()
+        await team_statistic_repository.create_team_statistic(new_statistic)
+
+        counter += 1
+        if counter >= len(teams):
+            break
 
 # --------------------------------------------------------------------------------

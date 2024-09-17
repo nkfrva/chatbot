@@ -11,7 +11,7 @@ from config.init_db import get_session
 class TeamRepository:
     async def get_teams(self) -> list[Team]:
         async with get_session() as session:
-            result = await session.exec(select(Team))
+            result = await session.execute(select(Team))
             return result.scalars().all()
 
     async def get_team_by_id(self, team_id: uuid.UUID) -> Team:

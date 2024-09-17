@@ -3,9 +3,12 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils import markdown as md
+from datetime import datetime
 
-from model import Task
+from model import Task, TeamStatistic
 from repository.task_repository import TaskRepository
+from repository.team_statistic_repository import TeamStatisticRepository
+from repository.member_repository import MemberRepository
 
 from database_command import member_commands
 
@@ -53,8 +56,8 @@ async def handle_task_title(message: types.Message, state: FSMContext):
         # key_repository = KeyRepository()
         existing_task = await task_repository.get_task_id_by_title(task_title)
         if existing_task:
-            await task_repository.delete_task_by_id(existing_task)
             await message.answer(f"Задание удалено: {md.bold(existing_task.title)}")
+            await task_repository.delete_task_by_id(existing_task)
         else:
             await message.answer("Задание не найдено.")
 
@@ -87,6 +90,7 @@ async def handle_task_answer(message: types.Message, state: FSMContext):
     await message.answer(f"Задание создано: {md.bold(created_task.title)}")
     await state.clear()
 
+
 # --------------------------------------------------------------------------------
 
 
@@ -94,9 +98,10 @@ async def handle_task_answer(message: types.Message, state: FSMContext):
 # 1. /get_station - посмотреть текущую станцию
 # 2. /get_task - посмотреть текущее задание
 # 3. /push_key - отправить ответ на проверку
+# 4. /search_free_station - прикрепиться к свободной не пройденной станции
 # --------------------------------------------------------------------------------
 @router.message(Command('get_station'))
-async def get_station(message: types.Message, state: FSMContext):
+async def get_station(message: types.Message):
     user_id = message.from_user.id
     station = await member_commands.get_station(str(user_id))
     if station:
@@ -106,11 +111,11 @@ async def get_station(message: types.Message, state: FSMContext):
 
 
 @router.message(Command('get_task'))
-async def get_task(message: types.Message, state: FSMContext):
+async def get_task(message: types.Message):
     user_id = message.from_user.id
     task = await member_commands.get_task(str(user_id))
     if task:
-        await message.answer(f"Ваша текущая станция: {md.bold(task.title)} \n {md.bold(task.description)}")
+        await message.answer(f"Задание: {md.bold(task.title)} \n {md.bold(task.description)}")
     else:
         await message.answer("На данный момент нет активных заданий")
 
@@ -125,12 +130,52 @@ async def push_key(message: types.Message, state: FSMContext):
 async def handle_user_key(message: types.Message, state: FSMContext):
     task_user_key = message.text
     data = await state.get_data()
-
     user_id = message.from_user.id
-    bool_correctness = await member_commands.check_correct_response(str(user_id), task_user_key)
-    if bool_correctness:
-        await message.answer(f"Успех! Ответ верный. Далее вы переходите на следующую станцию")
+
+    task = await member_commands.get_task(str(user_id))
+    if task is None:
+        await message.answer(f"На данный момент вы не прикреплены к станции, поэтому ответ не может быть проверен")
     else:
-        await message.answer("Ответ не верный")
+        bool_correctness = await member_commands.check_correct_response(str(user_id), task_user_key)
+
+        if bool_correctness:
+            await message.answer(f"Успех! Ответ верный. Далее вы переходите на следующую станцию")
+            await new_station(message)
+        else:
+            await message.answer("Ответ не верный")
 
     await state.clear()
+
+
+# todo Сделать кнопочку, которая будет вызывать "Поиск свободной станции" и как-то блочить ее хотябы на 3 минуты
+@router.message(Command('search_free_station'))
+async def search_free_station(message: types.Message):
+    await message.answer("Идет поиск свободной станции...")
+    await new_station(message)
+
+
+async def new_station(message: types.Message):
+    team_statistic_repository = TeamStatisticRepository()
+    member_repo = MemberRepository()
+
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S")
+
+    user_id = message.from_user.id
+    member = await member_repo.get_member_by_user_id(str(user_id))
+    team_uuid = member.team_uuid
+
+    change_flag = await member_commands.change_station(str(user_id), current_time)
+    current_station = await member_commands.get_station(str(user_id))
+
+    if change_flag == 0:
+        new_statistic = TeamStatistic(start_time=current_time, station_uuid=current_station.uuid,
+                                      team_uuid=team_uuid)
+        await team_statistic_repository.create_team_statistic(new_statistic)
+
+        await message.answer(f"Ваша следующая станция: {md.bold(current_station.title)}"
+                             f"\n{md.bold(current_station.description)}")
+    elif change_flag == 1:
+        await message.answer(f"На данный момент все станции заняты, попробуйте запросить станцию позднее")
+    elif change_flag == 2:
+        await message.answer(f"Поздравляем! Вы успешно прошли все станции")
