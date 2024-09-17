@@ -22,9 +22,7 @@ class Commands:
     remove_station = 'remove_station'
 
     ban_user = 'ban_user'
-    unban_user = 'unban_user'
     ban_team = 'ban_team'
-    unban_team = 'unban_team'
 
     mailing = 'mailing'
     individual_mailing = 'individual_mailing'
