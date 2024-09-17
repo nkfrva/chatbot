@@ -14,10 +14,12 @@ class TeamRepository:
             result = await session.execute(select(Team))
             return result.scalars().all()
 
+
     async def get_team_by_id(self, team_id: uuid.UUID) -> Team:
         async with get_session() as session:
             result = await session.get(Team, team_id)
             return result
+
 
     async def get_team_id_by_name(self, team_name: str) -> Any:
         async with get_session() as session:
@@ -25,11 +27,20 @@ class TeamRepository:
             team = result.scalars().first()
             return team.uuid
 
+
     async def get_team_id_by_token(self, team_token: str) ->Any:
         async with get_session() as session:
             result = await session.execute(select(Team).where(Team.key == team_token))
             team = result.scalars().first()
             return team.uuid
+
+
+    async def get_team_uuid_by_teamname(self, team_name: str) -> uuid:
+        async with get_session() as session:
+            result = await session.execute(select(Team.uuid).where(Team.name == team_name))
+            team = result.scalars().first()
+            return team
+
 
     async def create_team(self, new_team: Team) -> Team:
         async with get_session() as session:
@@ -37,6 +48,7 @@ class TeamRepository:
             await session.commit()
             await session.refresh(new_team)
             return new_team
+
 
     async def delete_team_by_id(self, team_id: uuid.UUID) -> bool:
         async with get_session() as session:

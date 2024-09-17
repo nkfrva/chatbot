@@ -1,62 +1,102 @@
 from aiogram import Router, F
-from aiogram.filters import Command
 from aiogram.types import Message
 from aiogram import types
-from shared.role import Role
-from config.command import Commands
-from config.messages import Messages
-from keyboards.member_buttons import start_member_kb
-from repository import member_repository
-from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from main import bot
+from repository.member_repository import MemberRepository
+from repository.team_repository import TeamRepository
+from aiogram.filters import Command, StateFilter
+
 
 router = Router()
 
 
 class MyStates(StatesGroup):
     message = State()
-
+    team = State()
+    username = State()
+    individual_message = State()
+    team_message = State()
 
 
 @router.message(Command('mail'))
-async def start_add_task(message: types.Message, state: FSMContext):
-    await message.answer("Введите заголовок задания для добавления:")
+async def mail(message: types.Message, state: FSMContext):
+    await message.answer("Введите сообщение")
     await state.set_state(MyStates.message)
 
 
 @router.message(MyStates.message)
-async def handle_team_token(message: Message, state: FSMContext):
-    user_id = message.from_user.id
+async def handle_mail(message: Message, state: FSMContext):
+    member_repository = MemberRepository()
+    users = await member_repository.get_members_id()
     m = message.text
-    await bot.send_message(726067906, m)
-    await bot.send_message(798162397, m)
+    [await bot.send_message(user, m) for user in users]
     await state.clear()
 
 
-
-# @router.message(Command(Commands.start))
-# async def cmd_start(message: Message):
-#
-#     role = BaseCommands.register(message.from_user.username)
-#
-#     if role == Role.Administrator:
-#         print('a')
-#     elif role == Role.Organizer:
-#         print('o')
-#     elif role == Role.Member:
-#
-#         await message.answer(
-#             Messages.hello_message_member,
-#             reply_markup=start_member_kb()
-#         )
-#     else:
-#         await message.answer(
-#             Messages.error_message
-#         )
-#     # добавить возможность закрытия регистрации
+@router.message(StateFilter(None), Command("team_mail"))
+async def cmd_team(message: Message, state: FSMContext):
+    await message.answer(
+        text="Введите команду"
+    )
+    await state.set_state(MyStates.team)
 
 
+@router.message(MyStates.team)
+async def cmd_team_text(message: Message, state: FSMContext):
+    await state.update_data(team=message.text)
+    await message.answer(
+        text="Сюда текст",
+    )
+    await state.set_state(MyStates.team_message)
 
 
+@router.message(MyStates.team_message)
+async def cmd_team_send(message: Message, state: FSMContext):
+    await state.update_data(team_mess=message.text.lower())
+    user_data = await state.get_data()
+
+    m = user_data['team_mess']
+    team = user_data['team']
+
+    member_repository = MemberRepository()
+    team_repository = TeamRepository()
+
+    team_uuid = await team_repository.get_team_uuid_by_teamname(team)
+    users = await member_repository.get_members_id_by_team_uuid(team_uuid)
+    [await bot.send_message(user, m) for user in users]
+
+    await state.clear()
+
+
+@router.message(StateFilter(None), Command("individual_mail"))
+async def cmd_user(message: Message, state: FSMContext):
+    await message.answer(
+        text="Введите username"
+    )
+    await state.set_state(MyStates.username)
+
+
+@router.message(MyStates.username)
+async def cmd_user_text(message: Message, state: FSMContext):
+    await state.update_data(user=message.text.lower())
+    await message.answer(
+        text="Сюда текст",
+    )
+    await state.set_state(MyStates.individual_message)
+
+
+@router.message(MyStates.individual_message)
+async def cmd_user_send(message: Message, state: FSMContext):
+    await state.update_data(user_mess=message.text.lower())
+    user_data = await state.get_data()
+
+    m = user_data['user_mess']
+    username = user_data['user']
+
+    member_repository = MemberRepository()
+    user = await member_repository.get_id_by_username(username)
+
+    await bot.send_message(user, m)
+    await state.clear()
