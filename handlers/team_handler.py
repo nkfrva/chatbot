@@ -6,6 +6,9 @@ from aiogram.utils import markdown as md
 
 from model import Team
 from repository.team_repository import TeamRepository
+from config.command import Commands
+from database_command import verification
+
 
 router = Router()
 
@@ -15,15 +18,23 @@ class TeamCreationStates(StatesGroup):
     action = State()
 
 
-@router.message(Command('add_team'))
+@router.message(Command(Commands.add_team))
 async def start_add_team(message: types.Message, state: FSMContext):
+    if await verification.is_organizer(message.from_user.username) is False:
+        await message.answer('У вас нет прав доступа для выполнения данной команды.')
+        return
+
     await message.answer("Введите имя команды для добавления:")
     await state.set_state(TeamCreationStates.name)
     await state.update_data(action='add')
 
 
-@router.message(Command('delete_team'))
+@router.message(Command(Commands.remove_team))
 async def start_delete_team(message: types.Message, state: FSMContext):
+    if await verification.is_organizer(message.from_user.username) is False:
+        await message.answer('У вас нет прав доступа для выполнения данной команды.')
+        return
+
     await message.answer("Введите имя команды для удаления:")
     await state.set_state(TeamCreationStates.name)
     await state.update_data(action='delete')

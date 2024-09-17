@@ -1,5 +1,5 @@
 from uuid import uuid4
-from sqlalchemy import Column, Integer, String, ForeignKey, UUID, CheckConstraint
+from sqlalchemy import Column, String, UUID
 from sqlalchemy.orm import relationship
 from .base_class import BaseClass
 
@@ -13,10 +13,5 @@ class Team(BaseClass):
     name: str = Column(String, default="Loxi", nullable=False)
 
     members = relationship("Member", back_populates="teams")
-
-    # один к одному
-    # не надо хранить uuid статистики!!!
     team_statistic = relationship("TeamStatistic", back_populates="teams")
-
     stations = relationship("Station", back_populates="team", uselist=False)
-

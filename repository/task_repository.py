@@ -1,42 +1,45 @@
 import uuid
-from typing import Any
-
 from sqlmodel import select
-from sqlmodel import Session
+import csv
 
 from model.task import Task
 from config.init_db import get_session
+from config.csv_format import CSV_task, get_key_pairs
 
 
 class TaskRepository:
-    async def get_tasks(self) -> list[Task]:
+
+    @staticmethod
+    async def get_tasks() -> list[Task]:
         async with get_session() as session:
             result = await session.execute(select(Task))
             return result.scalars().all()
 
-
-    async def get_task_by_id(self, task_id: uuid.UUID) -> Task:
+    @staticmethod
+    async def get_task_by_id(task_id: uuid.UUID) -> Task:
         async with get_session() as session:
             result = await session.get(Task, task_id)
             return result
 
-
-    async def get_task_id_by_title(self, task_title: str) -> Any:
+    @staticmethod
+    async def get_task_id_by_title(task_title: str) -> uuid:
         async with get_session() as session:
             result = await session.execute(select(Task).where(Task.title == task_title))
             task = result.scalars().first()
             return task.uuid
 
+    # region CRUD
 
-    async def create_task(self, new_task: Task) -> Task:
+    @staticmethod
+    async def create_task(new_task: Task) -> Task:
         async with get_session() as session:
             session.add(new_task)
             await session.commit()
             await session.refresh(new_task)
             return new_task
 
-
-    async def delete_task_by_id(self, task_id: uuid.UUID) -> bool:
+    @staticmethod
+    async def delete_task_by_id(task_id: uuid.UUID) -> bool:
         async with get_session() as session:
             result = await session.get(Task, task_id)
 
@@ -47,41 +50,22 @@ class TaskRepository:
             await session.commit()
             return True
 
-    # def get_tasks(self) -> list[Task]:
-    #     session: Session = next(get_session())
-    #     result = session.scalars(select(Task)).all()
-    #     session.close()
-    #     return [Task(uuid=task.uuid,
-    #                  title=task.title,
-    #                  description=task.description,
-    #                  key_uuid=task.key_uuid) for task in result]
-    #
-    # def get_task_by_id(self, task_id: uuid.UUID) -> Task:
-    #     session: Session = next(get_session())
-    #     result = session.get(Task, task_id)
-    #     session.close()
-    #     return result
-    #
-    # def create_task(self, task_create: Task, key_uuid: uuid) -> Task:
-    #     session: Session = next(get_session())
-    #     new_task = Task(title=task_create["title"],
-    #                   description=task_create["description"],
-    #                   key_uuid=key_uuid)
-    #
-    #     session.add(new_task)
-    #     session.commit()
-    #     session.refresh(new_task)
-    #     session.close()
-    #     return new_task
-    #
-    # def delete_task_by_id(self, task_id: uuid.UUID) -> bool:
-    #     session: Session = next(get_session())
-    #     result = session.get(Task, task_id)
-    #
-    #     if result is None:
-    #         return False
-    #
-    #     session.delete(result)
-    #     session.commit()
-    #     session.close()
-    #     return True
+    # endregion
+
+    # region import from csv
+
+    @staticmethod
+    async def import_from_csv(filepath):
+        with open(filepath, 'r') as file:
+            reader = csv.DictReader(file)
+            async with get_session() as session:
+                for row in reader:
+                    pairs = get_key_pairs(row)
+                    task = Task(title=pairs[CSV_task.title],
+                                description=pairs[CSV_task.description],
+                                key=pairs[CSV_task.key])
+                    session.add(task)
+                    await session.commit()
+                    await session.refresh(task)
+
+    # endregion

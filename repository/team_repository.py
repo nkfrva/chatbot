@@ -1,56 +1,52 @@
 import uuid
-from typing import Any
-
 from sqlmodel import select
-from sqlmodel import Session
+import csv
 
 from model.team import Team
 from config.init_db import get_session
+from config.csv_format import CSV_team, get_key_pairs
 
 
 class TeamRepository:
-    async def get_teams(self) -> list[Team]:
+
+    @staticmethod
+    async def get_teams() -> list[Team]:
         async with get_session() as session:
             result = await session.execute(select(Team))
             return result.scalars().all()
 
-
-    async def get_team_by_id(self, team_id: uuid.UUID) -> Team:
+    @staticmethod
+    async def get_team_by_id(team_id: uuid.UUID) -> Team:
         async with get_session() as session:
             result = await session.get(Team, team_id)
             return result
 
-
-    async def get_team_id_by_name(self, team_name: str) -> Any:
-        async with get_session() as session:
-            result = await session.execute(select(Team).where(Team.name == team_name))
-            team = result.scalars().first()
-            return team.uuid
-
-
-    async def get_team_id_by_token(self, team_token: str) ->Any:
+    @staticmethod
+    async def get_team_id_by_token(team_token: str) -> uuid:
         async with get_session() as session:
             result = await session.execute(select(Team).where(Team.key == team_token))
             team = result.scalars().first()
             return team.uuid
 
-
-    async def get_team_uuid_by_teamname(self, team_name: str) -> uuid:
+    @staticmethod
+    async def get_team_id_by_name(team_name: str) -> uuid:
         async with get_session() as session:
             result = await session.execute(select(Team.uuid).where(Team.name == team_name))
             team = result.scalars().first()
             return team
 
+    # region CRUD
 
-    async def create_team(self, new_team: Team) -> Team:
+    @staticmethod
+    async def create_team(new_team: Team) -> Team:
         async with get_session() as session:
             session.add(new_team)
             await session.commit()
             await session.refresh(new_team)
             return new_team
 
-
-    async def delete_team_by_id(self, team_id: uuid.UUID) -> bool:
+    @staticmethod
+    async def delete_team_by_id(team_id: uuid.UUID) -> bool:
         async with get_session() as session:
             result = await session.get(Team, team_id)
 
@@ -61,41 +57,20 @@ class TeamRepository:
             await session.commit()
             return True
 
-    # def get_teams(self) -> list[Team]:
-    #     session: Session = next(get_session())
-    #     result = session.scalars(select(Team)).all()
-    #     session.close()
-    #     return [Team(uuid=team.uuid,
-    #                  key=team.key,
-    #                  name=team.name,
-    #                  team_statistic_uuid=team.team_statistic_uuid) for team in result]
-    #
-    # def get_team_by_id(self, team_id: uuid.UUID) -> Team:
-    #     session: Session = next(get_session())
-    #     result = session.get(Team, team_id)
-    #     session.close()
-    #     return result
-    #
-    # def create_team(self, team_create: Team, team_statistic_uuid: uuid) -> Team:
-    #     session: Session = next(get_session())
-    #     new_team = Team(key=team_create["key"],
-    #                   name=team_create["name"],
-    #                   team_statistic_uuid=team_statistic_uuid)
-    #
-    #     session.add(new_team)
-    #     session.commit()
-    #     session.refresh(new_team)
-    #     session.close()
-    #     return new_team
-    #
-    # def delete_team_by_id(self, team_id: uuid.UUID) -> bool:
-    #     session: Session = next(get_session())
-    #     result = session.get(Team, team_id)
-    #
-    #     if result is None:
-    #         return False
-    #
-    #     session.delete(result)
-    #     session.commit()
-    #     session.close()
-    #     return True
+    # endregion
+
+    # region import from csv
+
+    @staticmethod
+    async def import_from_csv(filepath: str):
+        with open(filepath, 'r') as file:
+            reader = csv.DictReader(file)
+            async with get_session() as session:
+                for row in reader:
+                    pairs = get_key_pairs(row)
+                    team = Team(name=pairs[CSV_team.name])
+                    session.add(team)
+                    await session.commit()
+                    await session.refresh(team)
+
+    # endregion

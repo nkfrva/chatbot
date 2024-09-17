@@ -5,13 +5,14 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils import markdown as md
 from datetime import datetime
 
-from model import Task, TeamStatistic, LeadBoard
+from model import Task, TeamStatistic
 from repository.task_repository import TaskRepository
 from repository.team_statistic_repository import TeamStatisticRepository
 from repository.member_repository import MemberRepository
 from repository.leadboard_repository import LeadboardRepository
-
+from config.command import Commands
 from database_command import member_commands
+from database_command import verification
 
 router = Router()
 
@@ -23,18 +24,26 @@ class TaskCreationStates(StatesGroup):
     key = State()
     user_key = State()
 
+# region CRUD
 
-# Все для добавления и удаления заданий
-# --------------------------------------------------------------------------------
-@router.message(Command('add_task'))
+
+@router.message(Command(Commands.add_task))
 async def start_add_task(message: types.Message, state: FSMContext):
+    if await verification.is_organizer(message.from_user.username) is False:
+        await message.answer('У вас нет прав доступа для выполнения данной команды.')
+        return
+
     await message.answer("Введите заголовок задания для добавления:")
     await state.set_state(TaskCreationStates.title)
     await state.update_data(action='add')
 
 
-@router.message(Command('delete_task'))
+@router.message(Command(Commands.remove_task))
 async def start_delete_task(message: types.Message, state: FSMContext):
+    if await verification.is_organizer(message.from_user.username) is False:
+        await message.answer('У вас нет прав доступа для выполнения данной команды.')
+        return
+
     await message.answer("Введите заголовок задания для удаления:")
     await state.set_state(TaskCreationStates.title)
     await state.update_data(action='delete')
@@ -91,8 +100,7 @@ async def handle_task_answer(message: types.Message, state: FSMContext):
     await message.answer(f"Задание создано: {md.bold(created_task.title)}")
     await state.clear()
 
-
-# --------------------------------------------------------------------------------
+# endregion
 
 
 # Когда выдана станция мы можем посмотреть
@@ -101,8 +109,12 @@ async def handle_task_answer(message: types.Message, state: FSMContext):
 # 3. /push_key - отправить ответ на проверку
 # 4. /search_free_station - прикрепиться к свободной не пройденной станции
 # --------------------------------------------------------------------------------
-@router.message(Command('get_station'))
+@router.message(Command(Commands.get_station))
 async def get_station(message: types.Message):
+    if await verification.is_member(message.from_user.username) is False:
+        await message.answer('Вы не являетесь участником. Присоединитесь к команде.')
+        return
+
     user_id = message.from_user.id
     station = await member_commands.get_station(str(user_id))
     if station:
@@ -111,8 +123,12 @@ async def get_station(message: types.Message):
         await message.answer("Вы не прикреплены к станции")
 
 
-@router.message(Command('get_task'))
+@router.message(Command(Commands.get_task))
 async def get_task(message: types.Message):
+    if await verification.is_member(message.from_user.username) is False:
+        await message.answer('Вы не являетесь участником. Присоединитесь к команде.')
+        return
+
     user_id = message.from_user.id
     task = await member_commands.get_task(str(user_id))
     if task:
@@ -121,14 +137,22 @@ async def get_task(message: types.Message):
         await message.answer("На данный момент нет активных заданий")
 
 
-@router.message(Command('push_key'))
+@router.message(Command(Commands.push_key))
 async def push_key(message: types.Message, state: FSMContext):
+    if await verification.is_member(message.from_user.username) is False:
+        await message.answer('Вы не являетесь участником. Присоединитесь к команде.')
+        return
+
     await message.answer("Введите ответ на задание:")
     await state.set_state(TaskCreationStates.user_key)
 
 
 @router.message(TaskCreationStates.user_key)
 async def handle_user_key(message: types.Message, state: FSMContext):
+    if await verification.is_member(message.from_user.username) is False:
+        await message.answer('Вы не являетесь участником. Присоединитесь к команде.')
+        return
+
     leadboard_repository = LeadboardRepository()
     member_repo = MemberRepository()
     team_statistic_repository = TeamStatisticRepository()
@@ -173,8 +197,12 @@ async def handle_user_key(message: types.Message, state: FSMContext):
 
 
 # todo Сделать кнопочку, которая будет вызывать "Поиск свободной станции" и как-то блочить ее хотябы на 3 минуты
-@router.message(Command('search_free_station'))
+@router.message(Command(Commands.search_free_station))
 async def search_free_station(message: types.Message):
+    if await verification.is_member(message.from_user.username) is False:
+        await message.answer('Вы не являетесь участником. Присоединитесь к команде.')
+        return
+
     await message.answer("Идет поиск свободной станции...")
     await new_station(message)
 

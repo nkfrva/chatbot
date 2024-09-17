@@ -2,10 +2,9 @@ import asyncio
 import logging
 from aiogram import Bot, Dispatcher
 from config.init_db import init_db
-from handlers import base_handler, member_handler, team_handler, task_handler, station_handler
+from handlers import organizer_handler, member_handler, team_handler, task_handler, station_handler
 import os
 from dotenv import load_dotenv
-from repository.member_repository import MemberRepository
 
 
 bot = Bot(os.getenv('BOT_TOKEN'))
@@ -18,7 +17,7 @@ load_dotenv()
 async def main():
     await init_db()
 
-    dp.include_routers(base_handler.router,
+    dp.include_routers(organizer_handler.router,
                        member_handler.router,
                        team_handler.router,
                        task_handler.router,

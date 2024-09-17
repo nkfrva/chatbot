@@ -1,25 +1,29 @@
 import uuid
-from typing import Any
+import csv
+from sqlmodel import select
 
-from sqlmodel import select, update
-from sqlmodel import Session
-
-from model.station import Station
 from config.init_db import get_session
+from model.station import Station
+from config.csv_format import CSV_station, get_key_pairs
+from repository.task_repository import TaskRepository
 
 
 class StationRepository:
-    async def get_stations(self) -> list[Station]:
+
+    @staticmethod
+    async def get_stations() -> list[Station]:
         async with get_session() as session:
             result = await session.execute(select(Station))
             return result.scalars().all()
 
-    async def get_station_by_id(self, station_id: uuid.UUID) -> Station:
+    @staticmethod
+    async def get_station_by_id(station_id: uuid.UUID) -> Station:
         async with get_session() as session:
             result = await session.get(Station, station_id)
             return result
 
-    async def get_station_by_team_uuid(self, team_uuid: uuid.UUID) -> Station:
+    @staticmethod
+    async def get_station_by_team_uuid(team_uuid: uuid.UUID) -> Station:
         async with get_session() as session:
             result = await session.execute(select(Station).where(Station.team_uuid == team_uuid))
             if result:
@@ -28,22 +32,26 @@ class StationRepository:
             else:
                 return None
 
-    async def get_station_id_by_title(self, station_title: str) -> Any:
+    @staticmethod
+    async def get_station_id_by_title(station_title: str) -> uuid:
         async with get_session() as session:
             result = await session.execute(select(Station).where(Station.title == station_title))
             task = result.scalars().first()
             return task.uuid
 
-    async def create_station(self, new_station: Station) -> Station:
+    # region CRUD
+    @staticmethod
+    async def create_station(new_station: Station) -> Station:
         async with get_session() as session:
             session.add(new_station)
             await session.commit()
             await session.refresh(new_station)
             return new_station
 
-    async def update_station(self, station_id: uuid.UUID, **kwargs) -> Station:
+    @staticmethod
+    async def update_station(station_id: uuid.UUID, **kwargs) -> Station:
         async with get_session() as session:
-            station = await self.get_station_by_id(station_id)
+            station = await StationRepository.get_station_by_id(station_id)
             if not station:
                 return None
 
@@ -55,7 +63,8 @@ class StationRepository:
             await session.refresh(station)
             return station
 
-    async def delete_station_by_id(self, station_id: uuid.UUID) -> bool:
+    @staticmethod
+    async def delete_station_by_id(station_id: uuid.UUID) -> bool:
         async with get_session() as session:
             result = await session.get(Station, station_id)
 
@@ -65,3 +74,27 @@ class StationRepository:
             await session.delete(result)
             await session.commit()
             return True
+
+    # endregion
+
+    # region import from csv
+
+    @staticmethod
+    async def import_from_csv(filepath):
+        with open(filepath, 'r') as file:
+            reader = csv.DictReader(file)
+            task_repository = TaskRepository()
+            tasks = await task_repository.get_tasks()
+
+            async with get_session() as session:
+                for row in reader:
+                    pairs = get_key_pairs(row)
+                    task = [t for t in tasks if t.key == pairs[CSV_station.key]][0]
+                    team = Station(title=pairs[CSV_station.title],
+                                   description=pairs[CSV_station.description],
+                                   task_uuid=task.uuid)
+                    session.add(team)
+                    await session.commit()
+                    await session.refresh(team)
+
+    # endregion

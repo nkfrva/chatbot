@@ -4,37 +4,43 @@ class Commands:
     help = 'help'
     # endregion
 
-    # region Admin
-    add_organizer = 'добавить организатора'
-    remove_organizer = 'удалить организатора'
-
-    import_teams = 'импортировать команды'
-    import_members = 'импортировать участников'
-
-    # endregion
-
     # region Organizer
+    add_organizer = 'add_organizer'
+    remove_organizer = 'remove_organizer'
 
-    add_team = 'добавить команду'
-    remove_team = 'удалить команду'
+    import_teams = 'import_teams'
+    import_stations = 'import_stations'
+    import_tasks = 'import_tasks'
 
-    add_task = 'добавить задание'
-    remove_task = 'удалить задание'
+    add_team = 'add_team'
+    remove_team = 'remove_team'
 
-    ban_user = 'забанить игрока'
-    unban_user = 'разбанить игрока'
-    ban_team = 'забанить команду'
-    unban_team = 'разбанить команду'
+    add_task = 'add_task'
+    remove_task = 'remove_task'
 
-    mailing = 'рассылка сообщений'
-    individual_mailing = 'индивидуальная рассылка'
+    add_station = 'add_station'
+    remove_station = 'remove_station'
+
+    ban_user = 'ban_user'
+    unban_user = 'unban_user'
+    ban_team = 'ban_team'
+    unban_team = 'unban_team'
+
+    mailing = 'mailing'
+    individual_mailing = 'individual_mailing'
+    team_mailing = 'team_mailing'
+
+    get_leadboard = 'get_leadboard'
+    start_active = 'start_active'
 
     # endregion
 
     # region Member
 
-    enter_team_token = 'ввести токен команды'
-    post_answer = 'отправить ответ'
-    get_next_station = 'получить следующую станцию'
+    push_key = 'push_key'
+    enter_team_token = 'enter_team_token'
+    search_free_station = 'search_free_station'
+    get_station = 'get_station'
+    get_task = 'get_task'
 
     # endregion

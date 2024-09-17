@@ -1,17 +1,16 @@
 from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, ReplyKeyboardRemove
+from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from repository.member_repository import MemberRepository
 from model import Member
 from aiogram.utils import markdown as md
 
-from model import Station, TeamStatistic, LeadBoard
-from repository.station_repository import StationRepository
 from repository.team_repository import TeamRepository
-from repository.team_statistic_repository import TeamStatisticRepository
 from repository.leadboard_repository import LeadboardRepository
+from database_command import verification
+from config.command import Commands
 
 
 router = Router()
@@ -21,7 +20,7 @@ class MemberCreationStates(StatesGroup):
     team_token = State()
 
 
-@router.message(Command('enter_team_token'))
+@router.message(Command(Commands.enter_team_token))
 async def enter_team_token(message: Message, state: FSMContext):
     await message.answer("Введите уникальный идентификатор команды для присоединения:")
     await state.set_state(MemberCreationStates.team_token)
@@ -47,8 +46,13 @@ async def handle_team_token(message: Message, state: FSMContext):
     await state.clear()
 
 
-@router.message(Command('get_leadboard'))
-async def enter_team_token(message: Message, state: FSMContext):
+@router.message(Command(Commands.get_leadboard))
+async def get_leadboard(message: Message, state: FSMContext):
+
+    if await verification.is_member(message.from_user.username) is False:
+        await message.answer('Вы не являетесь участником. Присоединитесь к команде.')
+        return
+
     leadboard_repository = LeadboardRepository()
     team_repository = TeamRepository()
 
@@ -65,4 +69,3 @@ async def enter_team_token(message: Message, state: FSMContext):
                              f"Общее время прохождения станций: {entry.passage_time}\n\n")
 
     await message.answer(leadboard_string)
-
