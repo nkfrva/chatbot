@@ -4,9 +4,14 @@ from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from repository.member_repository import MemberRepository
-from repository.team_repository import TeamRepository
 from model import Member
 from aiogram.utils import markdown as md
+
+from model import Station, TeamStatistic, LeadBoard
+from repository.station_repository import StationRepository
+from repository.team_repository import TeamRepository
+from repository.team_statistic_repository import TeamStatisticRepository
+from repository.leadboard_repository import LeadboardRepository
 
 
 router = Router()
@@ -42,5 +47,22 @@ async def handle_team_token(message: Message, state: FSMContext):
     await state.clear()
 
 
+@router.message(Command('get_leadboard'))
+async def enter_team_token(message: Message, state: FSMContext):
+    leadboard_repository = LeadboardRepository()
+    team_repository = TeamRepository()
 
+    await message.answer("leadboard: \n")
+
+    leadboard_entries = await leadboard_repository.get_entries_from_leadboard()
+
+    leadboard_string = ""
+    for entry in leadboard_entries:
+        team = await team_repository.get_team_by_id(entry.team_uuid)
+        team_name = team.name
+        leadboard_string += (f"Команда: {team_name}\n"
+                             f"Пройдено станций: {entry.points}\n"
+                             f"Общее время прохождения станций: {entry.passage_time}\n\n")
+
+    await message.answer(leadboard_string)
 

@@ -5,10 +5,11 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils import markdown as md
 from datetime import datetime
 
-from model import Task, TeamStatistic
+from model import Task, TeamStatistic, LeadBoard
 from repository.task_repository import TaskRepository
 from repository.team_statistic_repository import TeamStatisticRepository
 from repository.member_repository import MemberRepository
+from repository.leadboard_repository import LeadboardRepository
 
 from database_command import member_commands
 
@@ -128,9 +129,16 @@ async def push_key(message: types.Message, state: FSMContext):
 
 @router.message(TaskCreationStates.user_key)
 async def handle_user_key(message: types.Message, state: FSMContext):
+    leadboard_repository = LeadboardRepository()
+    member_repo = MemberRepository()
+    team_statistic_repository = TeamStatisticRepository()
+
     task_user_key = message.text
     data = await state.get_data()
     user_id = message.from_user.id
+    member = await member_repo.get_member_by_user_id(str(user_id))
+    team_uuid = member.team_uuid
+    current_station = await member_commands.get_station(str(user_id))
 
     task = await member_commands.get_task(str(user_id))
     if task is None:
@@ -139,8 +147,25 @@ async def handle_user_key(message: types.Message, state: FSMContext):
         bool_correctness = await member_commands.check_correct_response(str(user_id), task_user_key)
 
         if bool_correctness:
-            await message.answer(f"Успех! Ответ верный. Далее вы переходите на следующую станцию")
+            await message.answer(f"Ответ верный! Далее вы переходите на следующую станцию")
             await new_station(message)
+
+            leadboard_id = await leadboard_repository.get_leadboard_id_by_team_id(team_uuid)
+            leadboard = await leadboard_repository.get_leadboard_entry_by_id(leadboard_id)
+            points = leadboard.points + 1
+
+            team_statistic = await team_statistic_repository.get_statistic_id_by_team_id_station_id(team_uuid,
+                                                                                                    current_station.uuid)
+            current_time = datetime.strptime(leadboard.passage_time, "%H:%M:%S")
+            start_time = datetime.strptime(team_statistic.start_time, "%H:%M:%S")
+            finish_time = datetime.strptime(team_statistic.finish_time, "%H:%M:%S")
+            new_passage_time = finish_time - start_time
+            new_passage_time = current_time + new_passage_time
+            new_passage_time = new_passage_time.strftime("%H:%M:%S")
+
+            await leadboard_repository.update_leadboard_entry(leadboard_id=leadboard_id,
+                                                              points=points,
+                                                              passage_time=new_passage_time)
         else:
             await message.answer("Ответ не верный")
 

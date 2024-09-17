@@ -5,10 +5,11 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils import markdown as md
 from datetime import datetime
 
-from model import Station, TeamStatistic
+from model import Station, TeamStatistic, LeadBoard
 from repository.station_repository import StationRepository
 from repository.team_repository import TeamRepository
 from repository.team_statistic_repository import TeamStatisticRepository
+from repository.leadboard_repository import LeadboardRepository
 
 from database_command import member_commands
 
@@ -95,9 +96,12 @@ async def handle_task_uuid(message: types.Message, state: FSMContext):
 # --------------------------------------------------------------------------------
 @router.message(Command('start_active'))
 async def start_auto_get_station(message: types.Message):
-    await message.answer("Автоматическая разадача станций запущена")
     station_repository = StationRepository()
     team_repository = TeamRepository()
+    team_statistic_repository = TeamStatisticRepository()
+    leadboard_repository = LeadboardRepository()
+
+    await message.answer("Автоматическая разадача станций запущена")
 
     stations = await station_repository.get_stations()
     teams = await team_repository.get_teams()
@@ -110,15 +114,16 @@ async def start_auto_get_station(message: types.Message):
         await station_repository.update_station(station_id=station.uuid, team_uuid=teams[counter].uuid)
         now = datetime.now()
         current_time = now.strftime("%H:%M:%S")
-        print("Current Time =", current_time)
 
         new_statistic = TeamStatistic(start_time=current_time, station_uuid=station.uuid, team_uuid=teams[counter].uuid)
-
-        team_statistic_repository = TeamStatisticRepository()
         await team_statistic_repository.create_team_statistic(new_statistic)
+
+        new_leadboard = LeadBoard(team_uuid=teams[counter].uuid)
+        await leadboard_repository.create_leadboard_entry(new_leadboard)
 
         counter += 1
         if counter >= len(teams):
             break
 
+    await message.answer(f"Все команды успешно присоединены к станциям")
 # --------------------------------------------------------------------------------
