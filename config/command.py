@@ -7,6 +7,8 @@ class Commands:
     # region Organizer
     add_organizer = 'Добавить организатора'
     remove_organizer = 'Удалить организатора'
+    get_organizer = 'Получить организаторов'
+    get_members = 'Получить участников'
 
     import_teams = 'Импортировать команды'
     import_stations = 'Импортировать станции'
@@ -14,17 +16,19 @@ class Commands:
 
     add_team = 'Добавить команду'
     remove_team = 'Удалить команду'
+    get_teams = 'Посмотреть команды'
 
     add_task = 'Добавить задание'
     remove_task = 'Удалить задание'
+    get_tasks = 'Посмотреть задания'
 
     add_station = 'Добавить станцию'
     remove_station = 'Удалить станцию'
+    get_stations = 'Посмотреть станции'
 
     ban_user = 'Забанить пользователя'
-    unban_user = 'Разбанить пользователя'
     ban_team = 'Забанить команду'
-    unban_team = 'Разбанить команду'
+    # TODO просмотр забаненных команд/участников
 
     mailing = 'Отправить сообщение всем'
     individual_mailing = 'Отправить сообщение пользователю'
@@ -32,6 +36,15 @@ class Commands:
 
     get_leadboard = 'Посмотреть текущий прогресс команд'
     start_active = 'Прикрепить команды к станциям'
+
+    menu_team = 'Команды'
+    menu_task = 'Задания'
+    menu_station = 'Станции'
+    menu_ban = 'Бан/разбан'
+    menu_mail = 'Рассылка'
+    menu_organizer = 'Организационное меню'
+    menu_import = 'Импорт'
+    menu_main = 'Главное меню'
 
     # endregion
 

@@ -14,7 +14,7 @@ from config.command import Commands
 from database_command import member_commands
 from database_command import verification
 from keyboards.member_buttons import start_member_kb, get_info
-from keyboards.organizer_buttons import organizer_start
+from keyboards import organizer_buttons
 from handlers.station_handler import new_station
 
 router = Router()
@@ -73,11 +73,11 @@ async def handle_task_title(message: types.Message, state: FSMContext):
         existing_task = await task_repository.get_task_id_by_title(task_title)
         if existing_task:
             await message.answer(f"Задание удалено: {md.bold(existing_task.title)}",
-                                 reply_markup=organizer_start())
+                                 reply_markup=organizer_buttons.main_menu_buttons())
             await task_repository.delete_task_by_id(existing_task)
         else:
             await message.answer("Задание не найдено.",
-                                 reply_markup=organizer_start())
+                                 reply_markup=organizer_buttons.main_menu_buttons())
 
         await state.clear()
 
@@ -106,7 +106,7 @@ async def handle_task_answer(message: types.Message, state: FSMContext):
     created_task = await task_repository.create_task(new_task)
 
     await message.answer(f"Задание создано: {md.bold(created_task.title)}",
-                         reply_markup=organizer_start())
+                         reply_markup=organizer_buttons.main_menu_buttons())
     await state.clear()
 
 
@@ -122,9 +122,9 @@ async def handle_task_answer(message: types.Message, state: FSMContext):
 # @router.message(Command(Commands.get_station))
 @router.message(lambda message: message.text == Commands.get_station)
 async def get_station(message: types.Message):
-    if await verification.is_member(message.from_user.username) is False:
-        await message.answer('Вы не являетесь участником. Присоединитесь к команде.',
-                             reply_markup=start_member_kb())
+    result_verification, mess = await verification.is_member(message.from_user.username)
+    if result_verification is False:
+        await message.answer(mess, reply_markup=start_member_kb())
         return
 
     user_id = message.from_user.id
@@ -139,9 +139,9 @@ async def get_station(message: types.Message):
 # @router.message(Command(Commands.get_task))
 @router.message(lambda message: message.text == Commands.get_task)
 async def get_task(message: types.Message):
-    if await verification.is_member(message.from_user.username) is False:
-        await message.answer('Вы не являетесь участником. Присоединитесь к команде.',
-                             reply_markup=start_member_kb())
+    result_verification, mess = await verification.is_member(message.from_user.username)
+    if result_verification is False:
+        await message.answer(mess, reply_markup=start_member_kb())
         return
 
     user_id = message.from_user.id
@@ -156,9 +156,9 @@ async def get_task(message: types.Message):
 # @router.message(Command(Commands.push_key))
 @router.message(lambda message: message.text == Commands.push_key)
 async def push_key(message: types.Message, state: FSMContext):
-    if await verification.is_member(message.from_user.username) is False:
-        await message.answer('Вы не являетесь участником. Присоединитесь к команде.',
-                             reply_markup=start_member_kb())
+    result_verification, mess = await verification.is_member(message.from_user.username)
+    if result_verification is False:
+        await message.answer(mess, reply_markup=start_member_kb())
         return
 
     await message.answer("Введите ответ на задание:")
@@ -167,11 +167,6 @@ async def push_key(message: types.Message, state: FSMContext):
 
 @router.message(TaskCreationStates.user_key)
 async def handle_user_key(message: types.Message, state: FSMContext):
-    if await verification.is_member(message.from_user.username) is False:
-        await message.answer('Вы не являетесь участником. Присоединитесь к команде.',
-                             reply_markup=start_member_kb())
-        return
-
     leadboard_repository = LeadboardRepository()
     member_repo = MemberRepository()
     team_statistic_repository = TeamStatisticRepository()
@@ -206,11 +201,23 @@ async def handle_user_key(message: types.Message, state: FSMContext):
             new_passage_time = finish_time - start_time
             new_passage_time = current_time + new_passage_time
             new_passage_time = new_passage_time.strftime("%H:%M:%S")
-
+            await state.clear()
             await leadboard_repository.update_leadboard_entry(leadboard_id=leadboard_id,
                                                               points=points,
                                                               passage_time=new_passage_time)
         else:
+            await state.clear()
             await message.answer("Ответ не верный", reply_markup=get_info())
 
-    await state.clear()
+
+@router.message(lambda message: message.text == Commands.get_tasks)
+async def start_add_station(message: types.Message, state: FSMContext):
+    if await verification.is_organizer(message.from_user.username) is False:
+        await message.answer('У вас нет прав доступа для выполнения данной команды.')
+        return
+
+    task_repository = TaskRepository()
+    tasks = await task_repository.get_tasks()
+
+    result = '\n'.join(f'Задание: {task.title}, описание: {task.description}' for task in tasks)
+    await message.answer(result)

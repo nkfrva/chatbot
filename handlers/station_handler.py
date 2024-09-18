@@ -14,7 +14,7 @@ from repository.member_repository import MemberRepository
 from config.command import Commands
 from database_command import verification
 from keyboards.member_buttons import start_member_kb
-from keyboards.organizer_buttons import organizer_start, get_info_organizer
+from keyboards import organizer_buttons
 from database_command import member_commands
 
 from keyboards.member_buttons import standby_kb, get_info
@@ -28,6 +28,18 @@ class StationCreationStates(StatesGroup):
     action = State()
     task_uuid = State()
 
+
+@router.message(lambda message: message.text == Commands.get_stations)
+async def start_add_station(message: types.Message, state: FSMContext):
+    if await verification.is_organizer(message.from_user.username) is False:
+        await message.answer('У вас нет прав доступа для выполнения данной команды.')
+        return
+
+    station_repository = StationRepository()
+    stations = await station_repository.get_stations()
+
+    result = '\n'.join(f'Станция: {station.title}, описание: {station.description}' for station in stations)
+    await message.answer(result)
 
 # region CRUD station
 
@@ -70,15 +82,14 @@ async def handle_station_title(message: types.Message, state: FSMContext):
     elif action == 'delete':
         station_repository = StationRepository()
         existing_station = await station_repository.get_station_id_by_title(station_title)
+        await state.clear()
         if existing_station:
             await message.answer(f"Станция удалена: {md.bold(existing_station.title)}",
-                                 reply_markup=organizer_start())
+                                 reply_markup=organizer_buttons.main_menu_buttons())
             await station_repository.delete_station_by_id(existing_station)
         else:
             await message.answer("Станция не найдена.",
-                                 reply_markup=organizer_start())
-
-        await state.clear()
+                                 reply_markup=organizer_buttons.main_menu_buttons())
 
 
 @router.message(StationCreationStates.description)
@@ -104,9 +115,9 @@ async def handle_task_uuid(message: types.Message, state: FSMContext):
     station_repository = StationRepository()
     created_station = await station_repository.create_station(new_station)
 
-    await message.answer(f"Станция создана: {md.bold(created_station.title)}",
-                         reply_markup=organizer_start())
     await state.clear()
+    await message.answer(f"Станция создана: {md.bold(created_station.title)}",
+                         reply_markup=organizer_buttons.main_menu_buttons())
 
 
 # endregion
@@ -133,7 +144,7 @@ async def start_auto_get_station(message: types.Message):
 
     if len(stations) < len(teams) - 1:
         await message.answer(f"Пожалуйста, убедитесь, что количество станций превышает количество команд.",
-                             reply_markup=organizer_start())
+                             reply_markup=organizer_buttons.main_menu_buttons())
         return
 
     counter = 0
@@ -155,7 +166,7 @@ async def start_auto_get_station(message: types.Message):
         if counter >= len(teams):
             break
 
-    await message.answer(f"Все команды успешно присоединены к станциям.", reply_markup=get_info_organizer())
+    await message.answer(f"Все команды успешно присоединены к станциям.", reply_markup=organizer_buttons.main_menu_buttons())
 
 
 # endregion
@@ -165,9 +176,9 @@ async def start_auto_get_station(message: types.Message):
 # @router.message(Command(Commands.search_free_station))
 @router.message(lambda message: message.text == Commands.search_free_station)
 async def search_free_station(message: types.Message):
-    if await verification.is_member(message.from_user.username) is False:
-        await message.answer('Вы не являетесь участником. Присоединитесь к команде.',
-                             reply_markup=start_member_kb())
+    result_verification, mess = await verification.is_member(message.from_user.username)
+    if result_verification is False:
+        await message.answer(mess, reply_markup=start_member_kb())
         return
 
     await message.answer("Идет поиск свободной станции...")

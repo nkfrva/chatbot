@@ -24,9 +24,9 @@ class TeamRepository:
     @staticmethod
     async def get_team_id_by_token(team_token: str) -> uuid:
         async with get_session() as session:
-            result = await session.execute(select(Team).where(Team.key == team_token))
+            result = await session.execute(select(Team.uuid).where(Team.key == team_token))
             team = result.scalars().first()
-            return team.uuid
+            return team
 
     @staticmethod
     async def get_team_id_by_name(team_name: str) -> uuid:

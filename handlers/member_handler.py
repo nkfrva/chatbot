@@ -13,7 +13,7 @@ from database_command import verification
 from config.command import Commands
 from keyboards.member_buttons import get_info
 from keyboards.member_buttons import start_member_kb
-from keyboards.organizer_buttons import organizer_start, get_info_organizer
+from keyboards import organizer_buttons
 
 router = Router()
 
@@ -31,24 +31,27 @@ async def enter_team_token(message: Message, state: FSMContext):
 
 @router.message(MemberCreationStates.team_token)
 async def handle_team_token(message: Message, state: FSMContext):
-    user_id = message.from_user.id
     team_token = message.text
+    username = message.from_user.username if message.from_user.username is not None else 'Участник'
+    user_id = message.from_user.id
 
     member_repository = MemberRepository()
     team_repository = TeamRepository()
     try:
         existing_team = await team_repository.get_team_id_by_token(team_token)
         if existing_team:
-            new_member = Member(team_uuid=existing_team, user_id=str(user_id), username=message.from_user.username)
+            new_member = Member(team_uuid=existing_team, user_id=str(user_id), username=username)
             team = await team_repository.get_team_by_id(existing_team)
             await member_repository.create_member(new_member)
 
             if await verification.is_organizer(message.from_user.username) is False:
+                await state.clear()
                 await message.answer(f"Вы успешно присоединились к команде: {md.bold(team.name)}",
                                      reply_markup=get_info())
             else:
+                await state.clear()
                 await message.answer(f"Вы успешно присоединились к команде: {md.bold(team.name)}",
-                                     reply_markup=organizer_start())
+                                     reply_markup=organizer_buttons.main_menu_buttons())
         else:
             await message.answer("Команда не найдена.", reply_markup=start_member_kb())
     except Exception as e:
@@ -60,9 +63,9 @@ async def handle_team_token(message: Message, state: FSMContext):
 # @router.message(Command(Commands.get_leadboard))
 @router.message(lambda message: message.text == Commands.get_leadboard)
 async def get_leadboard(message: Message):
-    if await verification.is_member(message.from_user.username) is False:
-        await message.answer('Вы не являетесь участником. Присоединитесь к команде.',
-                             reply_markup=start_member_kb())
+    result_verification, mess = await verification.is_member(message.from_user.username)
+    if result_verification is False:
+        await message.answer(mess, reply_markup=start_member_kb())
         return
 
     leadboard_repository = LeadboardRepository()

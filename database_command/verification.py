@@ -18,10 +18,14 @@ async def is_organizer(username: str) -> bool:
     return team.name == org_team
 
 
-async def is_member(username: str) -> bool:
+async def is_member(username: str):
     try:
         user = await member_repository.get_id_by_username(username)
         team = await team_repository.get_team_by_id(user.team_uuid)
-        return team.name is not None and user.ban is False
+
+        message = 'Вы забанены' if user.ban is True \
+            else 'Вы не являетесь участником. Присоединитесь к команде.'
+
+        return team.name is not None and user.ban is False, message
     except RuntimeError:
         return False

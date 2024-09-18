@@ -33,9 +33,9 @@ class MemberRepository:
             return member
 
     @staticmethod
-    async def get_members_id_by_team_uuid(team_uuid: str) -> list[int]:
+    async def get_members_by_team_uuid(team_uuid: str) -> list[Member]:
         async with get_session() as session:
-            result = await session.execute(select(Member.user_id).where(Member.team_uuid == team_uuid))
+            result = await session.execute(select(Member).where(Member.team_uuid == team_uuid))
             return result.scalars().all()
 
     @staticmethod
@@ -44,11 +44,29 @@ class MemberRepository:
             result = await session.execute(select(Member).where(Member.username == username))
             return result.scalars().first()
 
+    @staticmethod
+    async def ban_member_by_username(username: str) -> bool:
+        async with get_session() as session:
+            result = await session.execute(select(Member).where(Member.username == username))
+            member = result.scalars().first()
+
+            value = not member.ban
+            member.ban = value
+
+            await session.commit()
+            await session.refresh(member)
+            return value
+
     # region CRUD
 
     @staticmethod
     async def create_member(new_member: Member) -> Member:
         async with get_session() as session:
+            existing_users = await session.execute(select(Member).where(Member.user_id == new_member.user_id))
+            existing_user = existing_users.scalars().first()
+            if existing_user is not None:
+                return existing_user
+
             session.add(new_member)
             await session.commit()
             await session.refresh(new_member)
