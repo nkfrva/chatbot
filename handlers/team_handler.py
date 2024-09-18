@@ -4,11 +4,11 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils import markdown as md
 
+from keyboards.organizer_buttons import organizer_start
 from model import Team
 from repository.team_repository import TeamRepository
 from config.command import Commands
 from database_command import verification
-
 
 router = Router()
 
@@ -18,7 +18,8 @@ class TeamCreationStates(StatesGroup):
     action = State()
 
 
-@router.message(Command(Commands.add_team))
+# @router.message(Command(Commands.add_team))
+@router.message(lambda message: message.text == Commands.add_team)
 async def start_add_team(message: types.Message, state: FSMContext):
     if await verification.is_organizer(message.from_user.username) is False:
         await message.answer('У вас нет прав доступа для выполнения данной команды.')
@@ -29,7 +30,8 @@ async def start_add_team(message: types.Message, state: FSMContext):
     await state.update_data(action='add')
 
 
-@router.message(Command(Commands.remove_team))
+# @router.message(Command(Commands.remove_team))
+@router.message(lambda message: message.text == Commands.remove_team)
 async def start_delete_team(message: types.Message, state: FSMContext):
     if await verification.is_organizer(message.from_user.username) is False:
         await message.answer('У вас нет прав доступа для выполнения данной команды.')
@@ -51,14 +53,17 @@ async def handle_team_name(message: types.Message, state: FSMContext):
     if action == 'add':
         new_team = Team(name=team_name)
         created_team = await team_repository.create_team(new_team)
-        await message.answer(f"Команда создана: {md.bold(created_team.name)}")
+        await message.answer(f"Команда создана: {md.bold(created_team.name)}",
+                             reply_markup=organizer_start())
 
     elif action == 'delete':
         existing_team = await team_repository.get_team_id_by_name(team_name)
         if existing_team:
-            await message.answer(f"Команда удалена: {md.bold(team_name)}")
+            await message.answer(f"Команда удалена: {md.bold(team_name)}",
+                                 reply_markup=organizer_start())
             await team_repository.delete_team_by_id(existing_team)
         else:
-            await message.answer("Команда не найдена.")
+            await message.answer("Команда не найдена.",
+                                 reply_markup=organizer_start())
 
     await state.clear()

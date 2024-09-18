@@ -9,6 +9,7 @@ from repository.team_repository import TeamRepository
 from aiogram.filters import Command, StateFilter
 from config.command import Commands
 from database_command import verification
+from keyboards.organizer_buttons import organizer_start, get_info_organizer
 
 
 router = Router()
@@ -22,13 +23,14 @@ class MyStates(StatesGroup):
     team_message = State()
 
 
-@router.message(Command(Commands.mailing))
+# @router.message(Command(Commands.mailing))
+@router.message(lambda message: message.text == Commands.mailing)
 async def mail(message: types.Message, state: FSMContext):
     if await verification.is_organizer(message.from_user.username) is False:
         await message.answer('У вас нет прав доступа для выполнения данной команды.')
         return
 
-    await message.answer("Введите сообщение")
+    await message.answer("Введите сообщение:")
     await state.set_state(MyStates.message)
 
 
@@ -38,17 +40,19 @@ async def handle_mail(message: Message, state: FSMContext):
     users = await member_repository.get_members_id()
     m = message.text
     [await bot.send_message(user, m) for user in users]
+    await message.answer(text="", reply_markup=get_info_organizer())
     await state.clear()
 
 
-@router.message(StateFilter(None), Command(Commands.team_mailing))
+# @router.message(StateFilter(None), Command(Commands.team_mailing))
+@router.message(StateFilter(None), lambda message: message.text == Commands.team_mailing)
 async def cmd_team(message: Message, state: FSMContext):
     if await verification.is_organizer(message.from_user.username) is False:
         await message.answer('У вас нет прав доступа для выполнения данной команды.')
         return
 
     await message.answer(
-        text="Введите команду"
+        text="Введите команду:"
     )
     await state.set_state(MyStates.team)
 
@@ -57,7 +61,7 @@ async def cmd_team(message: Message, state: FSMContext):
 async def cmd_team_text(message: Message, state: FSMContext):
     await state.update_data(team=message.text)
     await message.answer(
-        text="Сюда текст",
+        text="Введите сообщение:",
     )
     await state.set_state(MyStates.team_message)
 
@@ -77,17 +81,19 @@ async def cmd_team_send(message: Message, state: FSMContext):
     users = await member_repository.get_members_id_by_team_uuid(team_uuid)
     [await bot.send_message(user, m) for user in users]
 
+    await message.answer(text="", reply_markup=get_info_organizer())
     await state.clear()
 
 
-@router.message(StateFilter(None), Command(Commands.individual_mailing))
+# @router.message(StateFilter(None), Command(Commands.individual_mailing))
+@router.message(StateFilter(None), lambda message: message.text == Commands.individual_mailing)
 async def cmd_user(message: Message, state: FSMContext):
     if await verification.is_organizer(message.from_user.username) is False:
         await message.answer('У вас нет прав доступа для выполнения данной команды.')
         return
 
     await message.answer(
-        text="Введите username"
+        text="Введите username:"
     )
     await state.set_state(MyStates.username)
 
@@ -96,7 +102,7 @@ async def cmd_user(message: Message, state: FSMContext):
 async def cmd_user_text(message: Message, state: FSMContext):
     await state.update_data(user=message.text.lower())
     await message.answer(
-        text="Сюда текст",
+        text="Введите сообщение:",
     )
     await state.set_state(MyStates.individual_message)
 
@@ -113,4 +119,5 @@ async def cmd_user_send(message: Message, state: FSMContext):
     user = await member_repository.get_id_by_username(username)
 
     await bot.send_message(user.user_id, m)
+    await message.answer(text="", reply_markup=get_info_organizer())
     await state.clear()

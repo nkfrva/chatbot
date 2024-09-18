@@ -11,7 +11,9 @@ from repository.team_repository import TeamRepository
 from repository.leadboard_repository import LeadboardRepository
 from database_command import verification
 from config.command import Commands
-
+from keyboards.member_buttons import get_info
+from keyboards.member_buttons import start_member_kb
+from keyboards.organizer_buttons import organizer_start, get_info_organizer
 
 router = Router()
 
@@ -20,7 +22,8 @@ class MemberCreationStates(StatesGroup):
     team_token = State()
 
 
-@router.message(Command(Commands.enter_team_token))
+# @router.message(Command(Commands.enter_team_token))
+@router.message(lambda message: message.text == Commands.enter_team_token)
 async def enter_team_token(message: Message, state: FSMContext):
     await message.answer("Введите уникальный идентификатор команды для присоединения:")
     await state.set_state(MemberCreationStates.team_token)
@@ -33,24 +36,33 @@ async def handle_team_token(message: Message, state: FSMContext):
 
     member_repository = MemberRepository()
     team_repository = TeamRepository()
+    try:
+        existing_team = await team_repository.get_team_id_by_token(team_token)
+        if existing_team:
+            new_member = Member(team_uuid=existing_team, user_id=str(user_id), username=message.from_user.username)
+            team = await team_repository.get_team_by_id(existing_team)
+            await member_repository.create_member(new_member)
 
-    existing_team = await team_repository.get_team_id_by_token(team_token)
-    if existing_team:
-        new_member = Member(team_uuid=existing_team, user_id=str(user_id), username=message.from_user.username)
-        team = await team_repository.get_team_by_id(existing_team)
-        await member_repository.create_member(new_member)
-        await message.answer(f"вы успешно присоединились к команде: {md.bold(team.name)}")
-    else:
-        await message.answer("Команда не найдена.")
+            if await verification.is_organizer(message.from_user.username) is False:
+                await message.answer(f"Вы успешно присоединились к команде: {md.bold(team.name)}",
+                                     reply_markup=get_info())
+            else:
+                await message.answer(f"Вы успешно присоединились к команде: {md.bold(team.name)}",
+                                     reply_markup=organizer_start())
+        else:
+            await message.answer("Команда не найдена.", reply_markup=start_member_kb())
+    except Exception as e:
+        await message.answer("Введите корректный идентификатор.", reply_markup=start_member_kb())
 
     await state.clear()
 
 
-@router.message(Command(Commands.get_leadboard))
-async def get_leadboard(message: Message, state: FSMContext):
-
+# @router.message(Command(Commands.get_leadboard))
+@router.message(lambda message: message.text == Commands.get_leadboard)
+async def get_leadboard(message: Message):
     if await verification.is_member(message.from_user.username) is False:
-        await message.answer('Вы не являетесь участником. Присоединитесь к команде.')
+        await message.answer('Вы не являетесь участником. Присоединитесь к команде.',
+                             reply_markup=start_member_kb())
         return
 
     leadboard_repository = LeadboardRepository()
@@ -59,6 +71,10 @@ async def get_leadboard(message: Message, state: FSMContext):
     await message.answer("leadboard: \n")
 
     leadboard_entries = await leadboard_repository.get_entries_from_leadboard()
+    if not leadboard_entries:
+        await message.answer("На данный момент нет ни одной записи.",
+                             reply_markup=get_info())
+        return
 
     leadboard_string = ""
     for entry in leadboard_entries:
@@ -68,4 +84,4 @@ async def get_leadboard(message: Message, state: FSMContext):
                              f"Пройдено станций: {entry.points}\n"
                              f"Общее время прохождения станций: {entry.passage_time}\n\n")
 
-    await message.answer(leadboard_string)
+    await message.answer(leadboard_string, reply_markup=get_info())

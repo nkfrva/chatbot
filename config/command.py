@@ -5,42 +5,43 @@ class Commands:
     # endregion
 
     # region Organizer
-    add_organizer = 'add_organizer'
-    remove_organizer = 'remove_organizer'
+    add_organizer = 'Добавить организатора'
+    remove_organizer = 'Удалить организатора'
 
-    import_teams = 'import_teams'
-    import_stations = 'import_stations'
-    import_tasks = 'import_tasks'
+    import_teams = 'Импортировать команды'
+    import_stations = 'Импортировать станции'
+    import_tasks = 'Импортировать задания'
 
-    add_team = 'add_team'
-    remove_team = 'remove_team'
+    add_team = 'Добавить команду'
+    remove_team = 'Удалить команду'
 
-    add_task = 'add_task'
-    remove_task = 'remove_task'
+    add_task = 'Добавить задание'
+    remove_task = 'Удалить задание'
 
-    add_station = 'add_station'
-    remove_station = 'remove_station'
+    add_station = 'Добавить станцию'
+    remove_station = 'Удалить станцию'
 
-    ban_user = 'ban_user'
-    unban_user = 'unban_user'
-    ban_team = 'ban_team'
-    unban_team = 'unban_team'
+    ban_user = 'Забанить пользователя'
+    unban_user = 'Разбанить пользователя'
+    ban_team = 'Забанить команду'
+    unban_team = 'Разбанить команду'
 
-    mailing = 'mailing'
-    individual_mailing = 'individual_mailing'
-    team_mailing = 'team_mailing'
+    mailing = 'Отправить сообщение всем'
+    individual_mailing = 'Отправить сообщение пользователю'
+    team_mailing = 'Отправить сообщение команде'
 
-    get_leadboard = 'get_leadboard'
-    start_active = 'start_active'
+    get_leadboard = 'Посмотреть текущий прогресс команд'
+    start_active = 'Прикрепить команды к станциям'
 
     # endregion
 
     # region Member
 
-    push_key = 'push_key'
-    enter_team_token = 'enter_team_token'
-    search_free_station = 'search_free_station'
-    get_station = 'get_station'
-    get_task = 'get_task'
+    push_key = 'Ввести ответ на задание'
+    # enter_team_token = 'enter_team_token'
+    enter_team_token = 'Ввести токен команды'
+    search_free_station = 'Запросить свободную станцию'
+    get_station = 'Посмотреть текущую станцию'
+    get_task = 'Посмотреть текущее задание'
 
     # endregion
