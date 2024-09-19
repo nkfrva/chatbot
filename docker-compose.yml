@@ -2,18 +2,17 @@ services:
   chatbot:
     container_name: chatbot
     build:
-      context: chatbot/
       dockerfile: Dockerfile
     ports:
-      - '8000:8000'
+      - '8081:8081'
     depends_on:
       - postgres
     networks:
       - rest
     environment:
-      - CONNECTION_STRING = "postgresql+asyncpg://postgres:1@localhost:5432/chatbot"
-      - BOT_TOKEN = "7482379369:AAH-3lqEjFSN8CyUsjfr8W5Xdu5mcFc8bO4"
-      - ORGANIZER_TEAM = "ORGANIZER"
+      - CONNECTION_STRING=postgresql+asyncpg://postgres:root@postgres:5432/chatbot
+      - BOT_TOKEN=7482379369:AAH-3lqEjFSN8CyUsjfr8W5Xdu5mcFc8bO4
+      - ORGANIZER_TEAM=ORGANIZER
 
   postgres:
     image: 'postgres:latest'
@@ -56,6 +55,10 @@ services:
       - '5432:5432'
     networks:
       - rest
+    environment:
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=chatbot
 
   pgadmin:
     container_name: pgadmin_container

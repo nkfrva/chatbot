@@ -4,13 +4,13 @@ from aiogram import Bot, Dispatcher
 from config.init_db import init_db
 from handlers import organizer_handler, member_handler, team_handler, task_handler, station_handler, base_handler
 import os
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
-bot = Bot(os.getenv(os.environ.get("BOT_TOKEN")))
+bot = Bot(os.environ.get("BOT_TOKEN"))
 dp = Dispatcher()
 
 logging.basicConfig(level=logging.INFO)
-load_dotenv()
+# load_dotenv()
 
 
 async def main():

@@ -1,10 +1,10 @@
 import os
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
 from repository.member_repository import MemberRepository
 from repository.team_repository import TeamRepository
 
-load_dotenv()
+# load_dotenv()
 member_repository = MemberRepository()
 team_repository = TeamRepository
 
