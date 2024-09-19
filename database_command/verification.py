@@ -13,7 +13,7 @@ async def is_organizer(username: str) -> bool:
     user = await member_repository.get_id_by_username(username)
     team = await team_repository.get_team_by_id(user.team_uuid)
 
-    org_team = os.getenv('ORGANIZER_TEAM')
+    org_team = os.environ.get("ORGANIZER_TEAM")
 
     return team.name == org_team
 

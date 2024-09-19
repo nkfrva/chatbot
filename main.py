@@ -6,8 +6,7 @@ from handlers import organizer_handler, member_handler, team_handler, task_handl
 import os
 from dotenv import load_dotenv
 
-
-bot = Bot(os.getenv('BOT_TOKEN'))
+bot = Bot(os.getenv(os.environ.get("BOT_TOKEN")))
 dp = Dispatcher()
 
 logging.basicConfig(level=logging.INFO)

@@ -1,0 +1,82 @@
+services:
+  chatbot:
+    container_name: chatbot
+    build:
+      context: chatbot/
+      dockerfile: Dockerfile
+    ports:
+      - '8000:8000'
+    depends_on:
+      - postgres
+    networks:
+      - rest
+    environment:
+      - CONNECTION_STRING = "postgresql+asyncpg://postgres:1@localhost:5432/chatbot"
+      - BOT_TOKEN = "7482379369:AAH-3lqEjFSN8CyUsjfr8W5Xdu5mcFc8bO4"
+      - ORGANIZER_TEAM = "ORGANIZER"
+
+  postgres:
+    image: 'postgres:latest'
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=50"
+      - "-c"
+      - "shared_buffers=1GB"
+      - "-c"
+      - "effective_cache_size=4GB"
+      - "-c"
+      - "work_mem=16MB"
+      - "-c"
+      - "maintenance_work_mem=512MB"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "temp_file_limit=10GB"
+      - "-c"
+      - "log_min_duration_statement=200ms"
+      - "-c"
+      - "idle_in_transaction_session_timeout=10s"
+      - "-c"
+      - "lock_timeout=1s"
+      - "-c"
+      - "statement_timeout=60s"
+      - "-c"
+      - "shared_preload_libraries=pg_stat_statements"
+      - "-c"
+      - "pg_stat_statements.max=10000"
+      - "-c"
+      - "pg_stat_statements.track=all"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+    ports:
+      - '5432:5432'
+    networks:
+      - rest
+
+  pgadmin:
+    container_name: pgadmin_container
+    image: dpage/pgadmin4:7.2
+    depends_on:
+      - postgres
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "test@chatbot.ru"
+      PGADMIN_DEFAULT_PASSWORD: "root"
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    user: '$UID:$GID'
+    ports:
+      - "5050:80"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+    networks:
+      - rest
+
+networks:
+  rest:
