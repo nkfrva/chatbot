@@ -59,6 +59,9 @@ services:
       - POSTGRES_PASSWORD=root
       - POSTGRES_USER=postgres
       - POSTGRES_DB=chatbot
+    restart: always
+    volumes:
+      - ./postgre_datas:/var/lib/postgresql/data
 
   pgadmin:
     container_name: pgadmin_container
