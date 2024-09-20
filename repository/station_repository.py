@@ -81,7 +81,7 @@ class StationRepository:
 
     @staticmethod
     async def import_from_csv(filepath):
-        with open(filepath, 'r') as file:
+        with open(filepath, 'r', encoding='windows-1251') as file:
             reader = csv.DictReader(file)
             task_repository = TaskRepository()
             tasks = await task_repository.get_tasks()
@@ -89,7 +89,9 @@ class StationRepository:
             async with get_session() as session:
                 for row in reader:
                     pairs = get_key_pairs(row)
-                    task = [t for t in tasks if t.key == pairs[CSV_station.key]][0]
+                    print(pairs)
+                    task = [t for t in tasks if t.title == pairs[CSV_station.key]][0]
+                    print(task)
                     team = Station(title=pairs[CSV_station.title],
                                    description=pairs[CSV_station.description],
                                    task_uuid=task.uuid)

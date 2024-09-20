@@ -56,10 +56,11 @@ class TaskRepository:
 
     @staticmethod
     async def import_from_csv(filepath):
-        with open(filepath, 'r') as file:
+        with open(filepath, 'r', encoding='windows-1251') as file:
             reader = csv.DictReader(file)
             async with get_session() as session:
                 for row in reader:
+                    print(row)
                     pairs = get_key_pairs(row)
                     task = Task(title=pairs[CSV_task.title],
                                 description=pairs[CSV_task.description],

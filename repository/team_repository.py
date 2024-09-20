@@ -63,7 +63,7 @@ class TeamRepository:
 
     @staticmethod
     async def import_from_csv(filepath: str):
-        with open(filepath, 'r') as file:
+        with open(filepath, 'r', encoding='windows-1251') as file:
             reader = csv.DictReader(file)
             async with get_session() as session:
                 for row in reader:

@@ -34,8 +34,10 @@ class TaskCreationStates(StatesGroup):
 # @router.message(Command(Commands.add_task))
 @router.message(lambda message: message.text == Commands.add_task)
 async def start_add_task(message: types.Message, state: FSMContext):
-    if await verification.is_organizer(message.from_user.username) is False:
-        await message.answer('У вас нет прав доступа для выполнения данной команды.')
+    is_member, team = await verification.is_organizer(message.from_user.username)
+    if is_member is False:
+        kb = start_member_kb() if team is None else get_info()
+        await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
 
     await message.answer("Введите заголовок задания для добавления:")
@@ -46,8 +48,10 @@ async def start_add_task(message: types.Message, state: FSMContext):
 # @router.message(Command(Commands.remove_task))
 @router.message(lambda message: message.text == Commands.remove_task)
 async def start_delete_task(message: types.Message, state: FSMContext):
-    if await verification.is_organizer(message.from_user.username) is False:
-        await message.answer('У вас нет прав доступа для выполнения данной команды.')
+    is_member, team = await verification.is_organizer(message.from_user.username)
+    if is_member is False:
+        kb = start_member_kb() if team is None else get_info()
+        await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
 
     await message.answer("Введите заголовок задания для удаления:")
@@ -212,12 +216,14 @@ async def handle_user_key(message: types.Message, state: FSMContext):
 
 @router.message(lambda message: message.text == Commands.get_tasks)
 async def start_add_station(message: types.Message, state: FSMContext):
-    if await verification.is_organizer(message.from_user.username) is False:
-        await message.answer('У вас нет прав доступа для выполнения данной команды.')
+    is_member, team = await verification.is_organizer(message.from_user.username)
+    if is_member is False:
+        kb = start_member_kb() if team is None else get_info()
+        await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
 
     task_repository = TaskRepository()
     tasks = await task_repository.get_tasks()
 
-    result = '\n'.join(f'Задание: {task.title}, описание: {task.description}' for task in tasks)
-    await message.answer(result)
+    result = '\n'.join(f'Задание: {task.title}, описание: {task.description}, ключ: {task.uuid}' for task in tasks)
+    await message.answer(result, reply_markup=organizer_buttons.main_menu_buttons())

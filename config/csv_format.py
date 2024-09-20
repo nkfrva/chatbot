@@ -6,7 +6,6 @@ class CSV_task:
 
 class CSV_team:
     name = 'Команды'
-    # key = 'Ключ'
 
 
 class CSV_station:
