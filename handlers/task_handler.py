@@ -195,16 +195,19 @@ async def handle_user_key(message: types.Message, state: FSMContext):
 
             leadboard_id = await leadboard_repository.get_leadboard_id_by_team_id(team_uuid)
             leadboard = await leadboard_repository.get_leadboard_entry_by_id(leadboard_id)
-            points = leadboard.points + 1
 
-            team_statistic = await team_statistic_repository.get_statistic_id_by_team_id_station_id(team_uuid,
-                                                                                                    current_station.uuid)
+            team_statistic = await team_statistic_repository.get_statistic_by_team_id_station_id(team_uuid,
+                                                                                                 current_station.uuid)
+
+            points = leadboard.points + team_statistic.point
+
             current_time = datetime.strptime(leadboard.passage_time, "%H:%M:%S")
             start_time = datetime.strptime(team_statistic.start_time, "%H:%M:%S")
             finish_time = datetime.strptime(team_statistic.finish_time, "%H:%M:%S")
             new_passage_time = finish_time - start_time
             new_passage_time = current_time + new_passage_time
             new_passage_time = new_passage_time.strftime("%H:%M:%S")
+
             await state.clear()
             await leadboard_repository.update_leadboard_entry(leadboard_id=leadboard_id,
                                                               points=points,

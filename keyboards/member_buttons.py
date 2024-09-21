@@ -24,7 +24,8 @@ def get_info() -> ReplyKeyboardMarkup:
         [types.KeyboardButton(text=Commands.get_station)],
         [types.KeyboardButton(text=Commands.get_task)],
         [types.KeyboardButton(text=Commands.push_key)],
-        [types.KeyboardButton(text=Commands.get_leadboard)]
+        [types.KeyboardButton(text=Commands.get_leadboard)],
+        [types.KeyboardButton(text=Commands.detach_team)]
 
     ]
     keyboard = types.ReplyKeyboardMarkup(

@@ -27,7 +27,7 @@ class TeamStatisticRepository:
             return statistics
 
     @staticmethod
-    async def get_statistic_id_by_team_id_station_id(team_id: uuid.UUID, station_id: uuid.UUID) -> TeamStatistic:
+    async def get_statistic_by_team_id_station_id(team_id: uuid.UUID, station_id: uuid.UUID) -> TeamStatistic:
         async with get_session() as session:
             result = await session.execute(select(TeamStatistic).where((TeamStatistic.team_uuid == team_id)
                                                                        & (TeamStatistic.station_uuid == station_id)))

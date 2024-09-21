@@ -1,3 +1,5 @@
+import uuid
+
 from aiogram import Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -130,6 +132,44 @@ async def handle_task_uuid(message: types.Message, state: FSMContext):
 
 # region Automatic station assignment on command
 
+@router.message(lambda message: message.text == Commands.detach_team)
+async def detach_team_from_station(message: types.Message):
+    station_repository = StationRepository()
+    member_repository = MemberRepository()
+    team_statistic_repository = TeamStatisticRepository()
+
+    user_id = message.from_user.id
+    member = await member_repository.get_member_by_user_id(str(user_id))
+    team_uuid = member.team_uuid
+    station = await station_repository.get_station_by_team_uuid(team_uuid)
+
+    if station:
+        statistic_record = await team_statistic_repository.get_statistic_by_team_id_station_id(team_uuid, station.uuid)
+        await new_station(message, team_gave_up=True)
+        await team_statistic_repository.update_team_statistic(statistic_record.uuid, points=0)
+
+
+async def delete_all_activity_records():
+    team_repository = TeamRepository()
+    team_statistic_repository = TeamStatisticRepository()
+    leadboard_repository = LeadboardRepository()
+    station_repository = StationRepository()
+
+    teams = await team_repository.get_teams()
+    team_statistics = await team_statistic_repository.get_team_statistics()
+    leadboard = await leadboard_repository.get_entries_from_leadboard()
+
+    for leadboard_entry in leadboard:
+        await leadboard_repository.delete_leadboard_entry_by_id(leadboard_entry.uuid)
+
+    for team_statistic in team_statistics:
+        await team_statistic_repository.delete_team_statistic_by_id(team_statistic.uuid)
+
+    for team in teams:
+        station = await station_repository.get_station_by_team_uuid(team.uuid)
+        if station:
+            await station_repository.update_station(station_id=station.uuid, team_uuid=None)
+
 
 # @router.message(Command(Commands.start_active))
 @router.message(lambda message: message.text == Commands.start_active)
@@ -146,6 +186,7 @@ async def start_auto_get_station(message: types.Message):
     leadboard_repository = LeadboardRepository()
 
     await message.answer("Автоматическая раздача станций запущена...")
+    await delete_all_activity_records()
 
     stations = await station_repository.get_stations()
     teams = await team_repository.get_teams()
@@ -193,7 +234,7 @@ async def search_free_station(message: types.Message):
     await new_station(message)
 
 
-async def new_station(message: types.Message):
+async def new_station(message: types.Message, team_gave_up=False):
     team_statistic_repository = TeamStatisticRepository()
     member_repo = MemberRepository()
 
@@ -204,7 +245,7 @@ async def new_station(message: types.Message):
     member = await member_repo.get_member_by_user_id(str(user_id))
     team_uuid = member.team_uuid
 
-    change_flag = await member_commands.change_station(str(user_id), current_time)
+    change_flag = await member_commands.change_station(str(user_id), current_time, team_gave_up)
     current_station = await member_commands.get_station(str(user_id))
 
     if change_flag == 0:

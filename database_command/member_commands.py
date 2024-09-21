@@ -57,7 +57,7 @@ async def get_possible_stations_by_team_uuid(team_uuid: uuid.UUID) -> Any:
     return possible_stations
 
 
-async def change_station(user_id: str, current_time: str) -> int:
+async def change_station(user_id: str, current_time: str, team_gave_up=False) -> int:
     member_repo = MemberRepository()
     station_repo = StationRepository()
     team_statistic_repository = TeamStatisticRepository()
@@ -69,9 +69,16 @@ async def change_station(user_id: str, current_time: str) -> int:
     if current_station is None:
         pass
     else:
-        current_statistic = await team_statistic_repository.get_statistic_id_by_team_id_station_id(team_uuid,
-                                                                                                   current_station.uuid)
-        await team_statistic_repository.update_team_statistic(current_statistic.uuid, finish_time=current_time)
+        current_statistic = await team_statistic_repository.get_statistic_by_team_id_station_id(team_uuid,
+                                                                                                current_station.uuid)
+        if team_gave_up:
+            await team_statistic_repository.update_team_statistic(current_statistic.uuid,
+                                                                  point=0,
+                                                                  finish_time=current_time)
+        else:
+            await team_statistic_repository.update_team_statistic(current_statistic.uuid,
+                                                                  point=1,
+                                                                  finish_time=current_time)
         await station_repo.update_station(current_station.uuid, team_uuid=None)
 
     possible_stations = await get_possible_stations_by_team_uuid(team_uuid)
