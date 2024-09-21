@@ -44,9 +44,8 @@ def menu_team_buttons() -> ReplyKeyboardMarkup:
 def menu_organizer_buttons() -> ReplyKeyboardMarkup:
     kb = [
         [types.KeyboardButton(text=Commands.get_leadboard)],
-        [types.KeyboardButton(text=Commands.add_organizer)],
-        [types.KeyboardButton(text=Commands.remove_organizer)],
         [types.KeyboardButton(text=Commands.start_active)],
+        [types.KeyboardButton(text=Commands.get_members)],
         [types.KeyboardButton(text=Commands.menu_main)]
     ]
     keyboard = types.ReplyKeyboardMarkup(
@@ -64,7 +63,6 @@ def menu_task_buttons() -> ReplyKeyboardMarkup:
         [types.KeyboardButton(text=Commands.add_task)],
         [types.KeyboardButton(text=Commands.remove_task)],
         [types.KeyboardButton(text=Commands.get_tasks)],
-        [types.KeyboardButton(text=Commands.start_active)],
         [types.KeyboardButton(text=Commands.menu_main)]
     ]
     keyboard = types.ReplyKeyboardMarkup(

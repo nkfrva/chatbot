@@ -1,5 +1,4 @@
 from aiogram import Router, F
-from aiogram.filters import Command
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -22,7 +21,6 @@ class MemberCreationStates(StatesGroup):
     team_token = State()
 
 
-# @router.message(Command(Commands.enter_team_token))
 @router.message(lambda message: message.text == Commands.enter_team_token)
 async def enter_team_token(message: Message, state: FSMContext):
     await message.answer(text="Введите уникальный идентификатор команды для присоединения:")
@@ -32,7 +30,7 @@ async def enter_team_token(message: Message, state: FSMContext):
 @router.message(MemberCreationStates.team_token)
 async def handle_team_token(message: Message, state: FSMContext):
     team_token = message.text
-    username = message.from_user.username if message.from_user.username is not None else 'Участник'
+    username = message.from_user.username
     user_id = message.from_user.id
 
     member_repository = MemberRepository()
@@ -55,14 +53,13 @@ async def handle_team_token(message: Message, state: FSMContext):
         await message.answer(text="Введите корректный идентификатор.", reply_markup=start_member_kb())
 
 
-# @router.message(Command(Commands.get_leadboard))
 @router.message(lambda message: message.text == Commands.get_leadboard)
 async def get_leadboard(message: Message):
     is_org, _ = await verification.is_organizer(message.from_user.username)
     kb = organizer_buttons.main_menu_buttons() if is_org is True else get_info()
 
-    result_verification, mess = await verification.is_member(message.from_user.username)
-    if result_verification is False:
+    is_member, mess = await verification.is_member(message.from_user.username)
+    if is_member is False:
         await message.answer(mess, reply_markup=start_member_kb())
         return
 

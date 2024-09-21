@@ -32,7 +32,7 @@ class StationCreationStates(StatesGroup):
 
 
 @router.message(lambda message: message.text == Commands.get_stations)
-async def start_add_station(message: types.Message, state: FSMContext):
+async def get_station(message: types.Message, state: FSMContext):
     is_member, team = await verification.is_organizer(message.from_user.username)
     if is_member is False:
         kb = start_member_kb() if team is None else get_info()
@@ -41,11 +41,20 @@ async def start_add_station(message: types.Message, state: FSMContext):
 
     station_repository = StationRepository()
     stations = await station_repository.get_stations()
+    try:
+        if stations is None:
+            await message.answer(f'Станций нет. Добавьте станцию.')
+            await message.answer(f"Главное меню", reply_markup=organizer_buttons.main_menu_buttons())
+            return
 
-    result = '\n'.join(f'Станция: {station.title}, описание: {station.description}' for station in stations)
-    await message.answer(result)
+        result = '\n'.join(f'Станция: {station.title}, описание: {station.description}' for station in stations)
+        await message.answer(result, reply_markup=organizer_buttons.main_menu_buttons())
+    except Exception as e:
+        await message.answer(f'Во время выполнения запроса произошла ошибка')
+        await message.answer(f"Главное меню", reply_markup=organizer_buttons.main_menu_buttons())
 
 # region CRUD station
+
 
 # @router.message(Command(Commands.add_station))
 @router.message(lambda message: message.text == Commands.add_station)
@@ -80,24 +89,28 @@ async def handle_station_title(message: types.Message, state: FSMContext):
     data = await state.get_data()
     action = data.get('action')
     station_title = message.text
+    await state.clear()
 
-    if action == 'add':
-        await message.answer("Введите описание станции:")
-        await state.set_state(StationCreationStates.description)
-        await state.update_data(title=station_title)
-        return
+    try:
+        if action == 'add':
+            await message.answer("Введите описание станции:")
+            await state.set_state(StationCreationStates.description)
+            await state.update_data(title=station_title)
+            return
 
-    elif action == 'delete':
-        station_repository = StationRepository()
-        existing_station = await station_repository.get_station_id_by_title(station_title)
-        await state.clear()
-        if existing_station:
-            await message.answer(f"Станция удалена: {md.bold(existing_station.title)}",
-                                 reply_markup=organizer_buttons.main_menu_buttons())
-            await station_repository.delete_station_by_id(existing_station)
-        else:
-            await message.answer("Станция не найдена.",
-                                 reply_markup=organizer_buttons.main_menu_buttons())
+        elif action == 'delete':
+            station_repository = StationRepository()
+            existing_station = await station_repository.get_station_id_by_title(station_title)
+            if existing_station:
+                await message.answer(f"Станция удалена: {md.bold(existing_station.title)}",
+                                     reply_markup=organizer_buttons.main_menu_buttons())
+                await station_repository.delete_station_by_id(existing_station)
+            else:
+                await message.answer("Станция не найдена.",
+                                     reply_markup=organizer_buttons.main_menu_buttons())
+    except Exception as e:
+        await message.answer(f'Во время выполнения запроса произошла ошибка')
+        await message.answer(f"Главное меню", reply_markup=organizer_buttons.main_menu_buttons())
 
 
 @router.message(StationCreationStates.description)
@@ -119,13 +132,17 @@ async def handle_task_uuid(message: types.Message, state: FSMContext):
     station_title = data.get('title')
     station_description = data.get('description')
     new_station = Station(title=station_title, description=station_description, task_uuid=station_uuid)
-
-    station_repository = StationRepository()
-    created_station = await station_repository.create_station(new_station)
-
     await state.clear()
-    await message.answer(f"Станция создана: {md.bold(created_station.title)}",
-                         reply_markup=organizer_buttons.main_menu_buttons())
+
+    try:
+        station_repository = StationRepository()
+        created_station = await station_repository.create_station(new_station)
+
+        await message.answer(f"Станция создана: {md.bold(created_station.title)}",
+                             reply_markup=organizer_buttons.main_menu_buttons())
+    except Exception as e:
+        await message.answer(f'Во время выполнения запроса произошла ошибка')
+        await message.answer(f"Главное меню", reply_markup=organizer_buttons.main_menu_buttons())
 
 
 # endregion
@@ -259,4 +276,6 @@ async def new_station(message: types.Message, team_gave_up=False):
         await message.answer(f"На данный момент все станции заняты, попробуйте запросить станцию позднее",
                              reply_markup=standby_kb())
     elif change_flag == 2:
-        await message.answer(f"Поздравляем! Вы успешно прошли все станции.")
+        await message.answer(f"Поздравляем! Вы успешно прошли все станции.", reply_markup=standby_kb())
+
+    await message.answer(reply_markup=standby_kb())

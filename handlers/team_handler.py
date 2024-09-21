@@ -56,22 +56,25 @@ async def handle_team_name(message: types.Message, state: FSMContext):
     team_repository = TeamRepository()
 
     await state.clear()
-
-    if action == 'add':
-        new_team = Team(name=team_name)
-        created_team = await team_repository.create_team(new_team)
-        await message.answer(f"Команда создана: {md.bold(created_team.name)}",
-                             reply_markup=organizer_buttons.main_menu_buttons())
-
-    elif action == 'delete':
-        existing_team = await team_repository.get_team_id_by_name(team_name)
-        if existing_team:
-            await message.answer(f"Команда удалена: {md.bold(team_name)}",
+    try:
+        if action == 'add':
+            new_team = Team(name=team_name)
+            created_team = await team_repository.create_team(new_team)
+            await message.answer(f"Команда создана: {md.bold(created_team.name)}",
                                  reply_markup=organizer_buttons.main_menu_buttons())
-            await team_repository.delete_team_by_id(existing_team)
-        else:
-            await message.answer("Команда не найдена.",
-                                 reply_markup=organizer_buttons.main_menu_buttons())
+
+        elif action == 'delete':
+            existing_team = await team_repository.get_team_id_by_name(team_name)
+            if existing_team:
+                await message.answer(f"Команда удалена: {md.bold(team_name)}",
+                                     reply_markup=organizer_buttons.main_menu_buttons())
+                await team_repository.delete_team_by_id(existing_team)
+            else:
+                await message.answer("Команда не найдена.",
+                                     reply_markup=organizer_buttons.main_menu_buttons())
+    except Exception as e:
+        await message.answer(text='Во время выполнения запроса произошла ошибка')
+        await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
 
 
 @router.message(lambda message: message.text == Commands.get_teams)

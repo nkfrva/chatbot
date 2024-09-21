@@ -64,26 +64,29 @@ async def handle_task_title(message: types.Message, state: FSMContext):
     data = await state.get_data()
     action = data.get('action')
     task_title = message.text
+    await state.clear()
 
-    if action == 'add':
-        await message.answer("Введите описание задания:")
-        await state.set_state(TaskCreationStates.description)
-        await state.update_data(title=task_title)
-        return
+    try:
+        if action == 'add':
+            await message.answer("Введите описание задания:")
+            await state.set_state(TaskCreationStates.description)
+            await state.update_data(title=task_title)
+            return
 
-    elif action == 'delete':
-        task_repository = TaskRepository()
-        # key_repository = KeyRepository()
-        existing_task = await task_repository.get_task_id_by_title(task_title)
-        if existing_task:
-            await message.answer(f"Задание удалено: {md.bold(existing_task.title)}",
-                                 reply_markup=organizer_buttons.main_menu_buttons())
-            await task_repository.delete_task_by_id(existing_task)
-        else:
-            await message.answer("Задание не найдено.",
-                                 reply_markup=organizer_buttons.main_menu_buttons())
-
-        await state.clear()
+        elif action == 'delete':
+            task_repository = TaskRepository()
+            # key_repository = KeyRepository()
+            existing_task = await task_repository.get_task_id_by_title(task_title)
+            if existing_task:
+                await message.answer(f"Задание удалено: {md.bold(existing_task.title)}",
+                                     reply_markup=organizer_buttons.main_menu_buttons())
+                await task_repository.delete_task_by_id(existing_task)
+            else:
+                await message.answer("Задание не найдено.",
+                                     reply_markup=organizer_buttons.main_menu_buttons())
+    except Exception as e:
+        await message.answer(text='Во время выполнения запроса произошла ошибка')
+        await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
 
 
 @router.message(TaskCreationStates.description)
@@ -218,7 +221,7 @@ async def handle_user_key(message: types.Message, state: FSMContext):
 
 
 @router.message(lambda message: message.text == Commands.get_tasks)
-async def start_add_station(message: types.Message, state: FSMContext):
+async def get_tasks(message: types.Message, state: FSMContext):
     is_member, team = await verification.is_organizer(message.from_user.username)
     if is_member is False:
         kb = start_member_kb() if team is None else get_info()
@@ -226,7 +229,14 @@ async def start_add_station(message: types.Message, state: FSMContext):
         return
 
     task_repository = TaskRepository()
-    tasks = await task_repository.get_tasks()
+    try:
+        tasks = await task_repository.get_tasks()
+        if tasks is None:
+            await message.answer('Заданий нет', reply_markup=organizer_buttons.main_menu_buttons())
+            return
 
-    result = '\n'.join(f'Задание: {task.title}, описание: {task.description}, ключ: {task.uuid}' for task in tasks)
-    await message.answer(result, reply_markup=organizer_buttons.main_menu_buttons())
+        result = '\n'.join(f'Задание: {task.title}, описание: {task.description}, ключ: {task.uuid}' for task in tasks)
+        await message.answer(result, reply_markup=organizer_buttons.main_menu_buttons())
+    except Exception as e:
+        await message.answer(text='Во время выполнения запроса произошла ошибка')
+        await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())

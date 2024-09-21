@@ -89,9 +89,7 @@ class StationRepository:
             async with get_session() as session:
                 for row in reader:
                     pairs = get_key_pairs(row)
-                    print(pairs)
                     task = [t for t in tasks if t.title == pairs[CSV_station.key]][0]
-                    print(task)
                     team = Station(title=pairs[CSV_station.title],
                                    description=pairs[CSV_station.description],
                                    task_uuid=task.uuid)

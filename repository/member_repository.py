@@ -45,17 +45,18 @@ class MemberRepository:
             return result.scalars().first()
 
     @staticmethod
-    async def ban_member_by_username(username: str) -> bool:
+    async def ban_member_by_username(username: str, value) -> bool:
         async with get_session() as session:
             result = await session.execute(select(Member).where(Member.username == username))
             member = result.scalars().first()
 
-            value = not member.ban
-            member.ban = value
+            new_value = not member.ban if value is None else value
+            member.ban = new_value
 
             await session.commit()
             await session.refresh(member)
             return value
+
 
     # region CRUD
 

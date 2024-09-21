@@ -5,8 +5,6 @@ class Commands:
     # endregion
 
     # region Organizer
-    add_organizer = 'Добавить организатора'
-    remove_organizer = 'Удалить организатора'
     get_organizer = 'Получить организаторов'
     get_members = 'Получить участников'
 
@@ -28,7 +26,6 @@ class Commands:
 
     ban_user = 'Забанить пользователя'
     ban_team = 'Забанить команду'
-    # TODO просмотр забаненных команд/участников
 
     mailing = 'Отправить сообщение всем'
     individual_mailing = 'Отправить сообщение пользователю'

@@ -4,13 +4,12 @@ from aiogram import Bot, Dispatcher
 from config.init_db import init_db
 from handlers import organizer_handler, member_handler, team_handler, task_handler, station_handler, base_handler
 import os
-# from dotenv import load_dotenv
+
 
 bot = Bot(os.environ.get("BOT_TOKEN"))
 dp = Dispatcher()
 
 logging.basicConfig(level=logging.INFO)
-# load_dotenv()
 
 
 async def main():
@@ -28,3 +27,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.get_event_loop().run_until_complete(main())
+
+#  psql -h localhost -U postgres -d chatbot

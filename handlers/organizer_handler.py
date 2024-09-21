@@ -1,5 +1,3 @@
-import time
-
 from aiogram import Router, F
 from aiogram.types import Message
 from aiogram import types
@@ -16,7 +14,7 @@ from keyboards.member_buttons import start_member_kb, get_info
 from repository.station_repository import StationRepository
 from repository.task_repository import TaskRepository
 from datetime import datetime
-
+from config.help_messages import HelpMessages
 
 router = Router()
 
@@ -33,7 +31,6 @@ class MyStates(StatesGroup):
     command = State()
 
 
-# @router.message(Command(Commands.mailing))
 @router.message(lambda message: message.text == Commands.mailing)
 async def mail(message: types.Message, state: FSMContext):
     is_member, team = await verification.is_organizer(message.from_user.username)
@@ -57,7 +54,6 @@ async def handle_mail(message: Message, state: FSMContext):
     await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
 
 
-# @router.message(StateFilter(None), Command(Commands.team_mailing))
 @router.message(StateFilter(None), lambda message: message.text == Commands.team_mailing)
 async def cmd_team(message: Message, state: FSMContext):
     is_member, team = await verification.is_organizer(message.from_user.username)
@@ -89,18 +85,30 @@ async def cmd_team_send(message: Message, state: FSMContext):
     m = user_data['team_mess']
     team = user_data['team']
 
+    await state.clear()
     member_repository = MemberRepository()
     team_repository = TeamRepository()
 
-    team_uuid = await team_repository.get_team_id_by_name(team)
-    users = await member_repository.get_members_by_team_uuid(team_uuid)
-    [await bot.send_message(user.user_id, m) for user in users]
+    try:
+        team_uuid = await team_repository.get_team_id_by_name(team)
+        if team_uuid is None:
+            await message.answer('Такой команды не существует', reply_markup=organizer_buttons.main_menu_buttons())
+            return
 
-    await state.clear()
-    await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
+        users = await member_repository.get_members_by_team_uuid(team_uuid)
+
+        if users is None:
+            await message.answer('У данной команды нет участников', reply_markup=organizer_buttons.main_menu_buttons())
+            return
+        [await bot.send_message(user.user_id, m) for user in users]
+
+        await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
+
+    except Exception as e:
+        await message.answer('Во время выполнения запроса произошла ошибка. ')
+        await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
 
 
-# @router.message(StateFilter(None), Command(Commands.individual_mailing))
 @router.message(StateFilter(None), lambda message: message.text == Commands.individual_mailing)
 async def cmd_user(message: Message, state: FSMContext):
     is_member, team = await verification.is_organizer(message.from_user.username)
@@ -131,19 +139,27 @@ async def cmd_user_send(message: Message, state: FSMContext):
 
     m = user_data['user_mess']
     username = user_data['user']
-
-    member_repository = MemberRepository()
-    user = await member_repository.get_id_by_username(username)
-
-    await bot.send_message(user.user_id, m)
     await state.clear()
-    await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
+
+    try:
+        member_repository = MemberRepository()
+        user = await member_repository.get_id_by_username(username)
+        if user is None:
+            await message.answer('Такого пользователя не существует. Проверьте корректность username',
+                                 reply_markup=organizer_buttons.main_menu_buttons())
+            return
+        await bot.send_message(user.user_id, m)
+        await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
+
+    except Exception as e:
+        await message.answer(text='Во время выполнения запроса произошла ошибка')
+        await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
 
 
 @router.message(StateFilter(None), lambda message: message.text == Commands.ban_user)
 async def ban_user(message: Message, state: FSMContext):
-    is_member, team = await verification.is_organizer(message.from_user.username)
-    if is_member is False:
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
         kb = start_member_kb() if team is None else get_info()
         await message.answer(text='У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
@@ -160,21 +176,28 @@ async def ban_by_username(message: Message, state: FSMContext):
     user_data = await state.get_data()
 
     username = user_data['ban']
-
-    member_repository = MemberRepository()
-    user = await member_repository.ban_member_by_username(username)
-    answer = 'забанили' if user is True else 'разбанили'
-
-    await bot.send_message(message.from_user.id, f'Вы успешно {answer} {username}')
     await state.clear()
-    await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
+    member_repository = MemberRepository()
 
+    try:
+        user = await member_repository.ban_member_by_username(username)
+        if user is None:
+            await message.answer(text='Пользователя не существует,', reply_markup=organizer_buttons.main_menu_buttons())
+            return
+        answer = 'забанили' if user is True else 'разбанили'
+
+        await bot.send_message(message.from_user.id, f'Вы успешно {answer} {username}')
+        await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
+
+    except:
+        await message.answer(text='Во время выполнения запроса произошла ошибка')
+        await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
 
 
 @router.message(StateFilter(None), lambda message: message.text == Commands.ban_team)
 async def ban_team(message: Message, state: FSMContext):
-    is_member, team = await verification.is_organizer(message.from_user.username)
-    if is_member is False:
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
         kb = start_member_kb() if team is None else get_info()
         await message.answer(text='У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
@@ -194,16 +217,27 @@ async def ban_by_team(message: Message, state: FSMContext):
 
     team_repository = TeamRepository()
     member_repository = MemberRepository()
-
-    team = await team_repository.get_team_id_by_name(team_name)
-    users = await member_repository.get_members_by_team_uuid(team)
-
-    [await member_repository.ban_member_by_username(user.username) for user in users]
-    answer = 'забанили' if users[0].ban is True else 'разбанили'
-
-    await bot.send_message(message.from_user.id, f'Вы успешно {answer} команду {team_name}')
     await state.clear()
-    await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
+
+    try:
+        team = await team_repository.get_team_id_by_name(team_name)
+        users = await member_repository.get_members_by_team_uuid(team)
+        if team is None:
+            await message.answer(text='Команды не существует,', reply_markup=organizer_buttons.main_menu_buttons())
+            return
+        if users is None:
+            await message.answer(text='В команде нет участников', reply_markup=organizer_buttons.main_menu_buttons())
+            return
+
+        new_status = not users[0].ban
+        [await member_repository.ban_member_by_username(user.username, new_status) for user in users]
+        answer = 'забанили' if new_status is False else 'разбанили'
+
+        await bot.send_message(message.from_user.id, f'Вы успешно {answer} команду {team_name}')
+        await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
+    except Exception as e:
+        await message.answer(text='Во время выполнения запроса произошла ошибка')
+        await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
 
 
 @router.message(lambda message: message.text == Commands.import_tasks or
@@ -216,21 +250,20 @@ async def import_task(message: types.Message, state: FSMContext):
         await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
     await state.update_data(command=message.text)
+    await message.answer(HelpMessages.help_import)
     await message.answer("Отправьте файл:")
     await state.set_state(MyStates.file)
 
 
 @router.message(MyStates.file)
 async def handle_task(message: types.Message, state: FSMContext):
-    file_id = message.document.file_id
-    data = await state.get_data()
-    command = data['command']
-    path = 'data/' + datetime.now().strftime("%Y%m%d%H%M") + message.document.file_name
-    await download_file(file_id, path)
-    await state.clear()
-
-    print(command)
     try:
+        file_id = message.document.file_id
+        data = await state.get_data()
+        command = data['command']
+        path = 'data/' + datetime.now().strftime("%Y%m%d%H%M") + message.document.file_name
+        await download_file(file_id, path)
+        await state.clear()
         if command == Commands.import_tasks:
             task_repository = TaskRepository()
             await task_repository.import_from_csv(path)
@@ -255,3 +288,30 @@ async def download_file(file_id, path):
     file = await bot.get_file(file_id)
     file_path = file.file_path
     await bot.download_file(file_path, destination=path)
+
+
+@router.message(lambda message: message.text == Commands.get_members)
+async def get_members(message: types.Message):
+    is_member, team = await verification.is_organizer(message.from_user.username)
+    if is_member is False:
+        kb = start_member_kb() if team is None else get_info()
+        await message.answer(text='У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
+
+    member_repository = MemberRepository()
+    team_repository = TeamRepository()
+
+    members = await member_repository.get_members()
+    teams = await team_repository.get_teams()
+
+    result = '\n'.join(f'{member.username}:'
+                       f'{find_team_by_uid(teams, member.team_uuid).name}:'
+                       f'{ban_text(member.ban)}' for member in members)
+    await message.answer(result, reply_markup=organizer_buttons.main_menu_buttons())
+
+
+def find_team_by_uid(teams, uid):
+    return next((team for team in teams if team.uuid == uid), None)
+
+
+def ban_text(is_ban):
+    return 'забанен' if is_ban is True else 'активен'

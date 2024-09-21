@@ -3,10 +3,36 @@ from aiogram.filters import Command
 from aiogram.types import Message
 
 from config.command import Commands
+from config.help_messages import HelpMessages
 from keyboards import organizer_buttons, member_buttons
+from database_command import verification
+from keyboards.member_buttons import start_member_kb, get_info
+import os
+from dotenv import load_dotenv
 
 
+load_dotenv()
 router = Router()
+
+
+@router.message(Command(Commands.help))
+async def help_command(message: Message):
+    is_member, team = await verification.is_organizer(message.from_user.username)
+
+    # org_team = os.environ.get("ORGANIZER_TEAM")
+    org_team = os.getenv("ORGANIZER_TEAM")
+
+    if is_member is False and team is None:
+        await message.answer(HelpMessages.help_new_user,
+                             reply_markup=member_buttons.start_member_kb())
+    elif is_member is False and team is not None:
+        await message.answer(HelpMessages.help_member,
+                             reply_markup=member_buttons.get_info())
+    elif is_member is True and team == org_team:
+        await message.answer(HelpMessages.help_org,
+                             reply_markup=organizer_buttons.main_menu_buttons())
+    else:
+        raise Exception('Invalid authentication')
 
 
 @router.message(Command(Commands.start))
