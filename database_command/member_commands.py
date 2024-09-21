@@ -82,6 +82,7 @@ async def change_station(user_id: str, current_time: str) -> int:
         if station.team_uuid is None:
             await station_repo.update_station(station.uuid, team_uuid=team_uuid)
             update_flag = True
+            break
 
     if len(possible_stations) == 0:
         return 2
