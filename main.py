@@ -6,7 +6,9 @@ from handlers import organizer_handler, member_handler, team_handler, task_handl
 import os
 
 
-bot = Bot(os.environ.get("BOT_TOKEN"))
+# bot = Bot(os.environ.get("BOT_TOKEN"))
+bot = Bot(os.getenv("BOT_TOKEN2"))
+
 dp = Dispatcher()
 
 logging.basicConfig(level=logging.INFO)

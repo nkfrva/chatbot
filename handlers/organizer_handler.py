@@ -221,6 +221,7 @@ async def ban_by_team(message: Message, state: FSMContext):
 
     try:
         team = await team_repository.get_team_id_by_name(team_name)
+        await team_repository.ban_team_by_uuid(team.uuid)
         users = await member_repository.get_members_by_team_uuid(team)
         if team is None:
             await message.answer(text='Команды не существует,', reply_markup=organizer_buttons.main_menu_buttons())
@@ -229,7 +230,7 @@ async def ban_by_team(message: Message, state: FSMContext):
             await message.answer(text='В команде нет участников', reply_markup=organizer_buttons.main_menu_buttons())
             return
 
-        new_status = not users[0].ban
+        new_status = team.ban
         [await member_repository.ban_member_by_username(user.username, new_status) for user in users]
         answer = 'забанили' if new_status is False else 'разбанили'
 
@@ -309,9 +310,31 @@ async def get_members(message: types.Message):
     await message.answer(result, reply_markup=organizer_buttons.main_menu_buttons())
 
 
-def find_team_by_uid(teams, uid):
-    return next((team for team in teams if team.uuid == uid), None)
+def find_team_by_uid(teams, uuid):
+    return next((team for team in teams if team.uuid == uuid), None)
 
 
 def ban_text(is_ban):
     return 'забанен' if is_ban is True else 'активен'
+
+
+@router.message(lambda message: message.text == Commands.get_team_station)
+async def get_team_station(message: types.Message):
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
+        kb = start_member_kb() if team is None else get_info()
+        await message.answer(text='У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
+
+    team_repository = TeamRepository()
+    station_repository = StationRepository()
+
+    stations = await station_repository.get_stations()
+    teams = await team_repository.get_teams()
+
+    result = '\n'.join(f'{station.title}:'
+                       f'{find_team_by_station(teams, station.team_uuid)}' for station in stations)
+    await message.answer(result, reply_markup=organizer_buttons.main_menu_buttons())
+
+
+def find_team_by_station(teams, uuid):
+    return next((team.name for team in teams if team.team_uuid == uuid), 'станция свободна')

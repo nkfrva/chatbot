@@ -35,6 +35,19 @@ class TeamRepository:
             team = result.scalars().first()
             return team
 
+    @staticmethod
+    async def ban_team_by_uuid(uuid):
+        async with get_session() as session:
+            result = await session.execute(select(Team).where(Team.uuid == uuid))
+            team = result.scalars().first()
+
+            new_value = not team.ban
+            team.ban = new_value
+
+            await session.commit()
+            await session.refresh(team)
+            return new_value
+
     # region CRUD
 
     @staticmethod

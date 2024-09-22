@@ -88,7 +88,11 @@ async def get_teams(message: types.Message, state: FSMContext):
     team_repository = TeamRepository()
     teams = await team_repository.get_teams()
 
-    result = '\n'.join(f'Команда: {team.name}, ключ: {team.key}' for team in teams)
+    result = '\n'.join(f'{team.name}:{team.key}:{ban_text(team.ban)}' for team in teams)
 
     await state.clear()
     await message.answer(result, reply_markup=organizer_buttons.main_menu_buttons())
+
+
+def ban_text(is_ban):
+    return 'забанена' if is_ban is True else 'активена'

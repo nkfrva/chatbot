@@ -5,9 +5,9 @@ from dotenv import load_dotenv
 from model import BaseClass
 
 
-# load_dotenv()
-engine = create_async_engine(os.environ.get("CONNECTION_STRING"), pool_pre_ping=True, pool_recycle=3600)
-# engine = create_async_engine(os.getenv("CONNECTION_STRING2"), pool_pre_ping=True, pool_recycle=3600)
+load_dotenv()
+# engine = create_async_engine(os.environ.get("CONNECTION_STRING"), pool_pre_ping=True, pool_recycle=3600)
+engine = create_async_engine(os.getenv("CONNECTION_STRING2"), pool_pre_ping=True, pool_recycle=3600)
 
 
 async def init_db():

@@ -34,6 +34,12 @@ class Commands:
     get_leadboard = 'Посмотреть текущий прогресс команд'
     start_active = 'Прикрепить команды к станциям'
 
+    pin_team_to_station = 'Прикрепить команду к станции'
+    unpin_team_to_station = 'Открепить команду от станции'
+    get_team_station = 'Посмотреть местоположение команд по станциям'
+    get_team_statistics = 'Получить подробную статистику о всех командах'
+    get_team_statistic = 'Получить подробную статистику о команде'
+
     menu_team = 'Команды'
     menu_task = 'Задания'
     menu_station = 'Станции'
