@@ -22,8 +22,8 @@ class TeamCreationStates(StatesGroup):
 # @router.message(Command(Commands.add_team))
 @router.message(lambda message: message.text == Commands.add_team)
 async def start_add_team(message: types.Message, state: FSMContext):
-    is_member, team = await verification.is_organizer(message.from_user.username)
-    if is_member is False:
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
         kb = start_member_kb() if team is None else get_info()
         await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
@@ -36,8 +36,8 @@ async def start_add_team(message: types.Message, state: FSMContext):
 # @router.message(Command(Commands.remove_team))
 @router.message(lambda message: message.text == Commands.remove_team)
 async def start_delete_team(message: types.Message, state: FSMContext):
-    is_member, team = await verification.is_organizer(message.from_user.username)
-    if is_member is False:
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
         kb = start_member_kb() if team is None else get_info()
         await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
@@ -58,7 +58,7 @@ async def handle_team_name(message: types.Message, state: FSMContext):
     await state.clear()
     try:
         if action == 'add':
-            new_team = Team(name=team_name)
+            new_team = Team(name=team_name, ban=False)
             created_team = await team_repository.create_team(new_team)
             await message.answer(f"Команда создана: {md.bold(created_team.name)}",
                                  reply_markup=organizer_buttons.main_menu_buttons())
@@ -73,14 +73,14 @@ async def handle_team_name(message: types.Message, state: FSMContext):
                 await message.answer("Команда не найдена.",
                                      reply_markup=organizer_buttons.main_menu_buttons())
     except Exception as e:
-        await message.answer(text='Во время выполнения запроса произошла ошибка')
+        await message.answer(text=f'Во время выполнения запроса произошла ошибка {e}')
         await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
 
 
 @router.message(lambda message: message.text == Commands.get_teams)
 async def get_teams(message: types.Message, state: FSMContext):
-    is_member, team = await verification.is_organizer(message.from_user.username)
-    if is_member is False:
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
         kb = start_member_kb() if team is None else get_info()
         await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
@@ -95,4 +95,4 @@ async def get_teams(message: types.Message, state: FSMContext):
 
 
 def ban_text(is_ban):
-    return 'забанена' if is_ban is True else 'активена'
+    return 'забанена' if is_ban is True else 'активна'

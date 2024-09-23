@@ -34,8 +34,8 @@ class TaskCreationStates(StatesGroup):
 # @router.message(Command(Commands.add_task))
 @router.message(lambda message: message.text == Commands.add_task)
 async def start_add_task(message: types.Message, state: FSMContext):
-    is_member, team = await verification.is_organizer(message.from_user.username)
-    if is_member is False:
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
         kb = start_member_kb() if team is None else get_info()
         await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
@@ -48,8 +48,8 @@ async def start_add_task(message: types.Message, state: FSMContext):
 # @router.message(Command(Commands.remove_task))
 @router.message(lambda message: message.text == Commands.remove_task)
 async def start_delete_task(message: types.Message, state: FSMContext):
-    is_member, team = await verification.is_organizer(message.from_user.username)
-    if is_member is False:
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
         kb = start_member_kb() if team is None else get_info()
         await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
@@ -80,12 +80,12 @@ async def handle_task_title(message: types.Message, state: FSMContext):
             if existing_task:
                 await message.answer(f"Задание удалено: {md.bold(existing_task.title)}",
                                      reply_markup=organizer_buttons.main_menu_buttons())
-                await task_repository.delete_task_by_id(existing_task)
+                await task_repository.delete_task_by_id(existing_task.uuid)
             else:
                 await message.answer("Задание не найдено.",
                                      reply_markup=organizer_buttons.main_menu_buttons())
     except Exception as e:
-        await message.answer(text='Во время выполнения запроса произошла ошибка')
+        await message.answer(text=f'Во время выполнения запроса произошла ошибка {e}')
         await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
 
 
@@ -112,9 +112,9 @@ async def handle_task_answer(message: types.Message, state: FSMContext):
     task_repository = TaskRepository()
     created_task = await task_repository.create_task(new_task)
 
+    await state.clear()
     await message.answer(f"Задание создано: {md.bold(created_task.title)}",
                          reply_markup=organizer_buttons.main_menu_buttons())
-    await state.clear()
 
 
 # endregion
@@ -149,7 +149,7 @@ async def get_station(message: types.Message):
             await message.answer("Вы не прикреплены к станции", reply_markup=standby_kb())
 
     except Exception as e:
-        await message.answer(text='Во время проверки текущей станции произошла ошибка', reply_markup=get_info())
+        await message.answer(text=f'Во время проверки текущей станции произошла ошибка {e}', reply_markup=get_info())
 
 
 # @router.message(Command(Commands.get_task))
@@ -176,7 +176,7 @@ async def get_task(message: types.Message):
             await message.answer("На данный момент нет активных заданий", reply_markup=standby_kb())
 
     except Exception as e:
-        await message.answer(text='Во время проверки текущего задания произошла ошибка', reply_markup=get_info())
+        await message.answer(text=f'Во время проверки текущего задания произошла ошибка {e}', reply_markup=get_info())
 
 
 # @router.message(Command(Commands.push_key))
@@ -245,8 +245,8 @@ async def handle_user_key(message: types.Message, state: FSMContext):
 
 @router.message(lambda message: message.text == Commands.get_tasks)
 async def get_tasks(message: types.Message, state: FSMContext):
-    is_member, team = await verification.is_organizer(message.from_user.username)
-    if is_member is False:
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
         kb = start_member_kb() if team is None else get_info()
         await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
@@ -261,5 +261,5 @@ async def get_tasks(message: types.Message, state: FSMContext):
         result = '\n'.join(f'Задание: {task.title}, описание: {task.description}, ключ: {task.uuid}' for task in tasks)
         await message.answer(result, reply_markup=organizer_buttons.main_menu_buttons())
     except Exception as e:
-        await message.answer(text='Во время выполнения запроса произошла ошибка')
+        await message.answer(text=f'Во время выполнения запроса произошла ошибка {e}')
         await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())

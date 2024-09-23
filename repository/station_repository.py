@@ -33,11 +33,12 @@ class StationRepository:
                 return None
 
     @staticmethod
-    async def get_station_id_by_title(station_title: str) -> uuid:
+    async def get_station_id_by_title(station_title: str):
         async with get_session() as session:
             result = await session.execute(select(Station).where(Station.title == station_title))
-            task = result.scalars().first()
-            return task.uuid
+            station = result.scalars().first()
+            return station
+
 
     # region CRUD
     @staticmethod

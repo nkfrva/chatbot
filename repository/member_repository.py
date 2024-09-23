@@ -55,7 +55,7 @@ class MemberRepository:
 
             await session.commit()
             await session.refresh(member)
-            return value
+            return new_value
 
 
     # region CRUD

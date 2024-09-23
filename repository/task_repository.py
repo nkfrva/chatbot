@@ -22,11 +22,11 @@ class TaskRepository:
             return result
 
     @staticmethod
-    async def get_task_id_by_title(task_title: str) -> uuid:
+    async def get_task_id_by_title(task_title: str):
         async with get_session() as session:
             result = await session.execute(select(Task).where(Task.title == task_title))
             task = result.scalars().first()
-            return task.uuid
+            return task
 
     # region CRUD
 

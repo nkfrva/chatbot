@@ -36,6 +36,13 @@ class TeamRepository:
             return team
 
     @staticmethod
+    async def get_full_team_id_by_name(team_name: str):
+        async with get_session() as session:
+            result = await session.execute(select(Team).where(Team.name == team_name))
+            team = result.scalars().first()
+            return team
+
+    @staticmethod
     async def ban_team_by_uuid(uuid):
         async with get_session() as session:
             result = await session.execute(select(Team).where(Team.uuid == uuid))

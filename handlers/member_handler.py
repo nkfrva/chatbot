@@ -14,6 +14,7 @@ from keyboards.member_buttons import get_info, standby_kb, start_member_kb
 from keyboards import organizer_buttons
 from database_command import member_commands
 
+
 router = Router()
 
 
@@ -57,6 +58,7 @@ async def handle_team_token(message: Message, state: FSMContext):
 async def get_leadboard(message: Message):
     is_org, _ = await verification.is_organizer(message.from_user.username)
     kb = organizer_buttons.main_menu_buttons() if is_org is True else get_info()
+    kb2 = organizer_buttons.main_menu_buttons() if is_org is True else standby_kb()
 
     is_member, mess = await verification.is_member(message.from_user.username)
     if is_member is False:
@@ -86,6 +88,6 @@ async def get_leadboard(message: Message):
                              f"Общее время прохождения станций: {entry.passage_time}\n\n")
 
     if current_station is None:
-        await message.answer(text=leadboard_string, reply_markup=standby_kb())
+        await message.answer(text=leadboard_string, reply_markup=kb2)
     else:
         await message.answer(text=leadboard_string, reply_markup=kb)

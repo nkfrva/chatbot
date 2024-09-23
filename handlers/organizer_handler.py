@@ -33,8 +33,8 @@ class MyStates(StatesGroup):
 
 @router.message(lambda message: message.text == Commands.mailing)
 async def mail(message: types.Message, state: FSMContext):
-    is_member, team = await verification.is_organizer(message.from_user.username)
-    if is_member is False:
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
         kb = start_member_kb() if team is None else get_info()
         await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
@@ -56,8 +56,8 @@ async def handle_mail(message: Message, state: FSMContext):
 
 @router.message(StateFilter(None), lambda message: message.text == Commands.team_mailing)
 async def cmd_team(message: Message, state: FSMContext):
-    is_member, team = await verification.is_organizer(message.from_user.username)
-    if is_member is False:
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
         kb = start_member_kb() if team is None else get_info()
         await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
@@ -92,27 +92,29 @@ async def cmd_team_send(message: Message, state: FSMContext):
     try:
         team_uuid = await team_repository.get_team_id_by_name(team)
         if team_uuid is None:
-            await message.answer('Такой команды не существует', reply_markup=organizer_buttons.main_menu_buttons())
+            await message.answer('Такой команды не существует',
+                                 reply_markup=organizer_buttons.main_menu_buttons())
             return
 
         users = await member_repository.get_members_by_team_uuid(team_uuid)
 
-        if users is None:
-            await message.answer('У данной команды нет участников', reply_markup=organizer_buttons.main_menu_buttons())
+        if not users:
+            await message.answer('У данной команды нет участников',
+                                 reply_markup=organizer_buttons.main_menu_buttons())
             return
         [await bot.send_message(user.user_id, m) for user in users]
 
         await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
 
     except Exception as e:
-        await message.answer('Во время выполнения запроса произошла ошибка. ')
+        await message.answer(f'Во время выполнения запроса произошла ошибка {e}')
         await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
 
 
 @router.message(StateFilter(None), lambda message: message.text == Commands.individual_mailing)
 async def cmd_user(message: Message, state: FSMContext):
-    is_member, team = await verification.is_organizer(message.from_user.username)
-    if is_member is False:
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
         kb = start_member_kb() if team is None else get_info()
         await message.answer(text='У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
@@ -152,7 +154,7 @@ async def cmd_user_send(message: Message, state: FSMContext):
         await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
 
     except Exception as e:
-        await message.answer(text='Во время выполнения запроса произошла ошибка')
+        await message.answer(text=f'Во время выполнения запроса произошла ошибка {e}')
         await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
 
 
@@ -177,20 +179,20 @@ async def ban_by_username(message: Message, state: FSMContext):
 
     username = user_data['ban']
     await state.clear()
-    member_repository = MemberRepository()
 
     try:
-        user = await member_repository.ban_member_by_username(username)
+        member_repository = MemberRepository()
+        user = await member_repository.ban_member_by_username(username, None)
         if user is None:
-            await message.answer(text='Пользователя не существует,', reply_markup=organizer_buttons.main_menu_buttons())
+            await message.answer(text='Пользователя не существует', reply_markup=organizer_buttons.main_menu_buttons())
             return
         answer = 'забанили' if user is True else 'разбанили'
 
-        await bot.send_message(message.from_user.id, f'Вы успешно {answer} {username}')
+        await message.answer(f'Вы успешно {answer} {username}')
         await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
 
-    except:
-        await message.answer(text='Во время выполнения запроса произошла ошибка')
+    except Exception as e:
+        await message.answer(text=f'Во время выполнения запроса произошла ошибка {e}')
         await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
 
 
@@ -217,27 +219,37 @@ async def ban_by_team(message: Message, state: FSMContext):
 
     team_repository = TeamRepository()
     member_repository = MemberRepository()
+    station_repository = StationRepository()
     await state.clear()
 
     try:
-        team = await team_repository.get_team_id_by_name(team_name)
+        team = await team_repository.get_full_team_id_by_name(team_name)
+
         await team_repository.ban_team_by_uuid(team.uuid)
-        users = await member_repository.get_members_by_team_uuid(team)
+        users = await member_repository.get_members_by_team_uuid(team.uuid)
+        stations = await station_repository.get_stations()
+
         if team is None:
             await message.answer(text='Команды не существует,', reply_markup=organizer_buttons.main_menu_buttons())
             return
-        if users is None:
+        if not users:
             await message.answer(text='В команде нет участников', reply_markup=organizer_buttons.main_menu_buttons())
             return
 
-        new_status = team.ban
+        new_status = not team.ban
         [await member_repository.ban_member_by_username(user.username, new_status) for user in users]
-        answer = 'забанили' if new_status is False else 'разбанили'
+
+        # освободит станцию
+        station = find_station_by_team(stations, team.uuid)
+        if station is not None:
+            await station_repository.update_station(station_id=station.uuid, team_uuid=None)
+
+        answer = 'разбанили' if new_status is False else 'забанили'
 
         await bot.send_message(message.from_user.id, f'Вы успешно {answer} команду {team_name}')
         await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
     except Exception as e:
-        await message.answer(text='Во время выполнения запроса произошла ошибка')
+        await message.answer(text=f'Во время выполнения запроса произошла ошибка {e}')
         await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
 
 
@@ -245,8 +257,8 @@ async def ban_by_team(message: Message, state: FSMContext):
                 message.text == Commands.import_teams or
                 message.text == Commands.import_stations)
 async def import_task(message: types.Message, state: FSMContext):
-    is_member, team = await verification.is_organizer(message.from_user.username)
-    if is_member is False:
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
         kb = start_member_kb() if team is None else get_info()
         await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
@@ -281,7 +293,7 @@ async def handle_task(message: types.Message, state: FSMContext):
         await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
 
     except Exception as e:
-        await message.answer('Во время выполнения произошла ошибка')
+        await message.answer(f'Во время выполнения произошла ошибка {e}')
         await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
 
 
@@ -293,8 +305,8 @@ async def download_file(file_id, path):
 
 @router.message(lambda message: message.text == Commands.get_members)
 async def get_members(message: types.Message):
-    is_member, team = await verification.is_organizer(message.from_user.username)
-    if is_member is False:
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
         kb = start_member_kb() if team is None else get_info()
         await message.answer(text='У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
 
@@ -310,14 +322,6 @@ async def get_members(message: types.Message):
     await message.answer(result, reply_markup=organizer_buttons.main_menu_buttons())
 
 
-def find_team_by_uid(teams, uuid):
-    return next((team for team in teams if team.uuid == uuid), None)
-
-
-def ban_text(is_ban):
-    return 'забанен' if is_ban is True else 'активен'
-
-
 @router.message(lambda message: message.text == Commands.get_team_station)
 async def get_team_station(message: types.Message):
     is_org, team = await verification.is_organizer(message.from_user.username)
@@ -327,14 +331,30 @@ async def get_team_station(message: types.Message):
 
     team_repository = TeamRepository()
     station_repository = StationRepository()
+    try:
+        stations = await station_repository.get_stations()
+        teams = await team_repository.get_teams()
 
-    stations = await station_repository.get_stations()
-    teams = await team_repository.get_teams()
+        result = '\n'.join(f'{station.title}:'
+                           f'{find_team_by_station(teams, station.team_uuid)}' for station in stations)
+        await message.answer(result, reply_markup=organizer_buttons.main_menu_buttons())
 
-    result = '\n'.join(f'{station.title}:'
-                       f'{find_team_by_station(teams, station.team_uuid)}' for station in stations)
-    await message.answer(result, reply_markup=organizer_buttons.main_menu_buttons())
+    except Exception as e:
+        await message.answer(f'Во время выполнения произошла ошибка {e}')
+        await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
+
+
+def find_team_by_uid(teams, uuid):
+    return next((team for team in teams if team.uuid == uuid), None)
+
+
+def ban_text(is_ban):
+    return 'забанен' if is_ban is True else 'активен'
 
 
 def find_team_by_station(teams, uuid):
-    return next((team.name for team in teams if team.team_uuid == uuid), 'станция свободна')
+    return next((team.name for team in teams if team.uuid == uuid), 'станция свободна')
+
+
+def find_station_by_team(stations, uuid):
+    return next((station for station in stations if station.team_uuid == uuid), None)

@@ -30,12 +30,15 @@ class StationCreationStates(StatesGroup):
     description = State()
     action = State()
     task_uuid = State()
+    pin_action = State()
+    pin_team = State()
+    pin_station = State()
 
 
 @router.message(lambda message: message.text == Commands.get_stations)
 async def get_station(message: types.Message, state: FSMContext):
-    is_member, team = await verification.is_organizer(message.from_user.username)
-    if is_member is False:
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
         kb = start_member_kb() if team is None else get_info()
         await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
@@ -60,8 +63,8 @@ async def get_station(message: types.Message, state: FSMContext):
 # @router.message(Command(Commands.add_station))
 @router.message(lambda message: message.text == Commands.add_station)
 async def start_add_station(message: types.Message, state: FSMContext):
-    is_member, team = await verification.is_organizer(message.from_user.username)
-    if is_member is False:
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
         kb = start_member_kb() if team is None else get_info()
         await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
@@ -74,8 +77,8 @@ async def start_add_station(message: types.Message, state: FSMContext):
 # @router.message(Command(Commands.remove_station))
 @router.message(lambda message: message.text == Commands.remove_station)
 async def start_delete_task(message: types.Message, state: FSMContext):
-    is_member, team = await verification.is_organizer(message.from_user.username)
-    if is_member is False:
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
         kb = start_member_kb() if team is None else get_info()
         await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
@@ -105,12 +108,12 @@ async def handle_station_title(message: types.Message, state: FSMContext):
             if existing_station:
                 await message.answer(f"Станция удалена: {md.bold(existing_station.title)}",
                                      reply_markup=organizer_buttons.main_menu_buttons())
-                await station_repository.delete_station_by_id(existing_station)
+                await station_repository.delete_station_by_id(existing_station.uuid)
             else:
                 await message.answer("Станция не найдена.",
                                      reply_markup=organizer_buttons.main_menu_buttons())
     except Exception as e:
-        await message.answer(f'Во время выполнения запроса произошла ошибка')
+        await message.answer(f'Во время выполнения запроса произошла ошибка {e}')
         await message.answer(f"Главное меню", reply_markup=organizer_buttons.main_menu_buttons())
 
 
@@ -142,7 +145,7 @@ async def handle_task_uuid(message: types.Message, state: FSMContext):
         await message.answer(f"Станция создана: {md.bold(created_station.title)}",
                              reply_markup=organizer_buttons.main_menu_buttons())
     except Exception as e:
-        await message.answer(f'Во время выполнения запроса произошла ошибка')
+        await message.answer(f'Во время выполнения запроса произошла ошибка {e}')
         await message.answer(f"Главное меню", reply_markup=organizer_buttons.main_menu_buttons())
 
 
@@ -193,8 +196,8 @@ async def delete_all_activity_records():
 # @router.message(Command(Commands.start_active))
 @router.message(lambda message: message.text == Commands.start_active)
 async def start_auto_get_station(message: types.Message):
-    is_member, team = await verification.is_organizer(message.from_user.username)
-    if is_member is False:
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
         kb = start_member_kb() if team is None else get_info()
         await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
         return
@@ -244,8 +247,8 @@ async def start_auto_get_station(message: types.Message):
 # @router.message(Command(Commands.search_free_station))
 @router.message(lambda message: message.text == Commands.search_free_station)
 async def search_free_station(message: types.Message):
-    result_verification, mess = await verification.is_member(message.from_user.username)
-    if result_verification is False:
+    is_member, mess = await verification.is_member(message.from_user.username)
+    if is_member is False:
         await message.answer(mess, reply_markup=start_member_kb())
         return
 
@@ -281,5 +284,78 @@ async def new_station(message: types.Message, team_gave_up=False):
         elif change_flag == 2:
             await message.answer(f"Поздравляем! Вы успешно прошли все станции.", reply_markup=standby_kb())
     except Exception as e:
-        await message.answer(f"Во время смены станции произошла ошибка", reply_markup=standby_kb())
+        await message.answer(f"Во время смены станции произошла ошибка {e}", reply_markup=standby_kb())
     # await message.answer(text="Что-то сломалось, но вот меню", reply_markup=standby_kb())
+
+
+@router.message(lambda message: message.text == Commands.unpin_team_to_station)
+async def unpin_team_to_station(message: types.Message, state: FSMContext):
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
+        kb = start_member_kb() if team is None else get_info()
+        await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
+        return
+
+    await message.answer("Введите заголовок станции:")
+    await state.set_state(StationCreationStates.pin_station)
+    await state.update_data(pin_action='unpin')
+
+
+@router.message(lambda message: message.text == Commands.pin_team_to_station)
+async def pin_team_to_station(message: types.Message, state: FSMContext):
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
+        kb = start_member_kb() if team is None else get_info()
+        await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
+        return
+
+    await message.answer("Введите заголовок станции:")
+    await state.set_state(StationCreationStates.pin_station)
+    await state.update_data(pin_action='pin')
+
+
+@router.message(StationCreationStates.pin_station)
+async def pin_station(message: types.Message, state: FSMContext):
+    await state.update_data(pin_station=message.text)
+    await message.answer("Введите команду:")
+    await state.set_state(StationCreationStates.pin_team)
+
+
+@router.message(StationCreationStates.pin_team)
+async def pin_station(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    station_name = data.get('pin_station')
+    action = data.get('pin_action')
+    team_name = message.text
+    await state.clear()
+
+    try:
+        station_repository = StationRepository()
+        team_repository = TeamRepository()
+
+        station = await station_repository.get_station_id_by_title(station_name)
+        team = await team_repository.get_full_team_id_by_name(team_name)
+
+        if station is None:
+            await message.answer(f'Станция не существует')
+            await message.answer(f"Главное меню", reply_markup=organizer_buttons.main_menu_buttons())
+            return
+        if team is None:
+            await message.answer(f'Команда не существует')
+            await message.answer(f"Главное меню", reply_markup=organizer_buttons.main_menu_buttons())
+            return
+
+        if action == 'pin':
+            await station_repository.update_station(station_id=station.uuid, team_uuid=team.uuid)
+            await message.answer(f'Команда {team.name} успешно прикреплена к станции {station.title}')
+            await message.answer(f"Главное меню", reply_markup=organizer_buttons.main_menu_buttons())
+        elif action == 'unpin':
+            await station_repository.update_station(station_id=station.uuid, team_uuid=None)
+            await message.answer(f'Команда {team.name} успешно откреплена от станции {station.title}')
+            await message.answer(f"Главное меню", reply_markup=organizer_buttons.main_menu_buttons())
+        else:
+            raise Exception
+
+    except Exception as e:
+        await message.answer(f'Во время выполнения запроса произошла ошибка {e}')
+        await message.answer(f"Главное меню", reply_markup=organizer_buttons.main_menu_buttons())
