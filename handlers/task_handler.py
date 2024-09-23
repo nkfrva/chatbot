@@ -258,7 +258,7 @@ async def get_tasks(message: types.Message, state: FSMContext):
             await message.answer('Заданий нет', reply_markup=organizer_buttons.main_menu_buttons())
             return
 
-        result = '\n'.join(f'Задание: {task.title}, описание: {task.description}, ключ: {task.uuid}' for task in tasks)
+        result = '\n'.join(f'{task.title}:{task.description}:{task.uuid}' for task in tasks)
         await message.answer(result, reply_markup=organizer_buttons.main_menu_buttons())
     except Exception as e:
         await message.answer(text=f'Во время выполнения запроса произошла ошибка {e}')

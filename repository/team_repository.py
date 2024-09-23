@@ -88,7 +88,7 @@ class TeamRepository:
             async with get_session() as session:
                 for row in reader:
                     pairs = get_key_pairs(row)
-                    team = Team(name=pairs[CSV_team.name])
+                    team = Team(name=pairs[CSV_team.name], ban=False)
                     session.add(team)
                     await session.commit()
                     await session.refresh(team)

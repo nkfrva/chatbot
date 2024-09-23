@@ -33,6 +33,7 @@ class StationCreationStates(StatesGroup):
     pin_action = State()
     pin_team = State()
     pin_station = State()
+    confirmation = State()
 
 
 @router.message(lambda message: message.text == Commands.get_stations)
@@ -154,21 +155,21 @@ async def handle_task_uuid(message: types.Message, state: FSMContext):
 # region Automatic station assignment on command
 
 # @router.message(lambda message: message.text == Commands.detach_team)
-@router.message(Command(Commands.detach_team))
-async def detach_team_from_station(message: types.Message):
-    station_repository = StationRepository()
-    member_repository = MemberRepository()
-    team_statistic_repository = TeamStatisticRepository()
-
-    user_id = message.from_user.id
-    member = await member_repository.get_member_by_user_id(str(user_id))
-    team_uuid = member.team_uuid
-    station = await station_repository.get_station_by_team_uuid(team_uuid)
-
-    if station:
-        statistic_record = await team_statistic_repository.get_statistic_by_team_id_station_id(team_uuid, station.uuid)
-        await new_station(message, team_gave_up=True)
-        await team_statistic_repository.update_team_statistic(statistic_record.uuid, points=0)
+# @router.message(Command(Commands.detach_team))
+# async def detach_team_from_station(message: types.Message):
+#     station_repository = StationRepository()
+#     member_repository = MemberRepository()
+#     team_statistic_repository = TeamStatisticRepository()
+#
+#     user_id = message.from_user.id
+#     member = await member_repository.get_member_by_user_id(str(user_id))
+#     team_uuid = member.team_uuid
+#     station = await station_repository.get_station_by_team_uuid(team_uuid)
+#
+#     if station:
+#         statistic_record = await team_statistic_repository.get_statistic_by_team_id_station_id(team_uuid, station.uuid)
+#         await new_station(message, team_gave_up=True)
+#         await team_statistic_repository.update_team_statistic(statistic_record.uuid, points=0)
 
 
 async def delete_all_activity_records():
@@ -193,13 +194,27 @@ async def delete_all_activity_records():
             await station_repository.update_station(station_id=station.uuid, team_uuid=None)
 
 
-# @router.message(Command(Commands.start_active))
 @router.message(lambda message: message.text == Commands.start_active)
-async def start_auto_get_station(message: types.Message):
+async def start_auto_get_station(message: types.Message, state: FSMContext):
     is_org, team = await verification.is_organizer(message.from_user.username)
     if is_org is False:
         kb = start_member_kb() if team is None else get_info()
         await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
+        return
+
+    await message.answer("Вы уверены, что хотите начать раздачу станций? "
+                         "Это сотрет все данные о предыдущем запуске"
+                         "\nВведите \"Да, запустить\" если хотите продолжить."
+                         "Если нет, то любой другой текст.")
+    await state.set_state(StationCreationStates.confirmation)
+
+
+@router.message(StationCreationStates.confirmation)
+async def auto_get_station(message: types.Message, state: FSMContext):
+    await state.clear()
+    if message.text != 'Да, запустить':
+        await message.answer(f"Команда отменена",
+                             reply_markup=organizer_buttons.main_menu_buttons())
         return
 
     station_repository = StationRepository()
@@ -222,6 +237,9 @@ async def start_auto_get_station(message: types.Message):
     for station in stations:
         if teams[counter].name == "ORGANIZER":
             counter += 1
+        if counter < len(teams) and teams[counter].ban is True:
+            counter += 1
+            break
 
         await station_repository.update_station(station_id=station.uuid, team_uuid=teams[counter].uuid)
         now = datetime.now()

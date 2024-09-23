@@ -44,12 +44,12 @@ def menu_team_buttons() -> ReplyKeyboardMarkup:
 def menu_organizer_buttons() -> ReplyKeyboardMarkup:
     kb = [
         [types.KeyboardButton(text=Commands.get_leadboard)],
-        [types.KeyboardButton(text=Commands.start_active)],
         [types.KeyboardButton(text=Commands.get_members)],
         [types.KeyboardButton(text=Commands.get_team_station)],
         [types.KeyboardButton(text=Commands.get_team_statistics)],
         [types.KeyboardButton(text=Commands.pin_team_to_station)],
         [types.KeyboardButton(text=Commands.unpin_team_to_station)],
+        [types.KeyboardButton(text=Commands.start_active)],
         [types.KeyboardButton(text=Commands.menu_main)]
     ]
     keyboard = types.ReplyKeyboardMarkup(

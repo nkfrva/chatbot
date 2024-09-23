@@ -8,10 +8,8 @@ from keyboards import organizer_buttons, member_buttons
 from database_command import verification
 from keyboards.member_buttons import start_member_kb, get_info
 import os
-from dotenv import load_dotenv
 
 
-load_dotenv()
 router = Router()
 
 
@@ -19,8 +17,7 @@ router = Router()
 async def help_command(message: Message):
     is_org, team = await verification.is_organizer(message.from_user.username)
 
-    # org_team = os.environ.get("ORGANIZER_TEAM")
-    org_team = os.getenv("ORGANIZER_TEAM")
+    org_team = os.environ.get("ORGANIZER_TEAM")
 
     if is_org is False and team is None:
         await message.answer(HelpMessages.help_new_user,
