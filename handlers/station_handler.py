@@ -1,3 +1,4 @@
+
 import uuid
 
 from aiogram import Router, types
@@ -29,9 +30,6 @@ class StationCreationStates(StatesGroup):
     description = State()
     action = State()
     task_uuid = State()
-    pin_action = State()
-    pin_team = State()
-    pin_station = State()
 
 
 @router.message(lambda message: message.text == Commands.get_stations)
@@ -45,7 +43,7 @@ async def get_station(message: types.Message, state: FSMContext):
     station_repository = StationRepository()
     stations = await station_repository.get_stations()
     try:
-        if stations is None:
+        if len(stations) == 0:
             await message.answer(f'Станций нет. Добавьте станцию.')
             await message.answer(f"Главное меню", reply_markup=organizer_buttons.main_menu_buttons())
             return
@@ -152,7 +150,8 @@ async def handle_task_uuid(message: types.Message, state: FSMContext):
 
 # region Automatic station assignment on command
 
-@router.message(lambda message: message.text == Commands.detach_team)
+# @router.message(lambda message: message.text == Commands.detach_team)
+@router.message(Command(Commands.detach_team))
 async def detach_team_from_station(message: types.Message):
     station_repository = StationRepository()
     member_repository = MemberRepository()
@@ -220,8 +219,6 @@ async def start_auto_get_station(message: types.Message):
     for station in stations:
         if teams[counter].name == "ORGANIZER":
             counter += 1
-        elif teams[counter].ban is True:
-            counter += 1
 
         await station_repository.update_station(station_id=station.uuid, team_uuid=teams[counter].uuid)
         now = datetime.now()
@@ -267,94 +264,22 @@ async def new_station(message: types.Message, team_gave_up=False):
     member = await member_repo.get_member_by_user_id(str(user_id))
     team_uuid = member.team_uuid
 
-    change_flag = await member_commands.change_station(str(user_id), current_time, team_gave_up)
-    current_station = await member_commands.get_station(str(user_id))
-
-    if change_flag == 0:
-        new_statistic = TeamStatistic(start_time=current_time, station_uuid=current_station.uuid,
-                                      team_uuid=team_uuid)
-        await team_statistic_repository.create_team_statistic(new_statistic)
-
-        await message.answer(f"Ваша следующая станция: {md.bold(current_station.title)}"
-                             f"\n{md.bold(current_station.description)}", reply_markup=get_info())
-    elif change_flag == 1:
-        await message.answer(f"На данный момент все станции заняты, попробуйте запросить станцию позднее",
-                             reply_markup=standby_kb())
-    elif change_flag == 2:
-        await message.answer(f"Поздравляем! Вы успешно прошли все станции.", reply_markup=standby_kb())
-
-    await message.answer(reply_markup=standby_kb())
-
-
-@router.message(lambda message: message.text == Commands.unpin_team_to_station)
-async def unpin_team_to_station(message: types.Message, state: FSMContext):
-    is_org, team = await verification.is_organizer(message.from_user.username)
-    if is_org is False:
-        kb = start_member_kb() if team is None else get_info()
-        await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
-        return
-
-    await message.answer("Введите заголовок станции:")
-    await state.set_state(StationCreationStates.pin_station)
-    await state.update_data(pin_action='unpin')
-
-
-@router.message(lambda message: message.text == Commands.pin_team_to_station)
-async def pin_team_to_station(message: types.Message, state: FSMContext):
-    is_org, team = await verification.is_organizer(message.from_user.username)
-    if is_org is False:
-        kb = start_member_kb() if team is None else get_info()
-        await message.answer('У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
-        return
-
-    await message.answer("Введите заголовок станции:")
-    await state.set_state(StationCreationStates.pin_station)
-    await state.update_data(pin_action='pin')
-
-
-@router.message(StationCreationStates.pin_station)
-async def pin_station(message: types.Message, state: FSMContext):
-    await state.update_data(pin_station=message.text)
-    await message.answer("Введите заголовок станции:")
-    await state.set_state(StationCreationStates.pin_team)
-
-
-@router.message(StationCreationStates.pin_team)
-async def pin_station(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    station_name = data.get('pin_station')
-    action = data.get('pin_action')
-    team_name = message.text
-    await state.clear()
-
     try:
-        station_repository = StationRepository()
-        team_repository = TeamRepository()
+        change_flag = await member_commands.change_station(str(user_id), current_time, team_gave_up)
+        current_station = await member_commands.get_station(str(user_id))
 
-        station = await station_repository.get_station_id_by_title(station_name)
-        team = await team_repository.get_team_id_by_name(team_name)
+        if change_flag == 0:
+            new_statistic = TeamStatistic(start_time=current_time, station_uuid=current_station.uuid,
+                                          team_uuid=team_uuid)
+            await team_statistic_repository.create_team_statistic(new_statistic)
 
-        if station is None:
-            await message.answer(f'Станция не существует')
-            await message.answer(f"Главное меню", reply_markup=organizer_buttons.main_menu_buttons())
-            return
-        if team is None:
-            await message.answer(f'Команда не существует')
-            await message.answer(f"Главное меню", reply_markup=organizer_buttons.main_menu_buttons())
-            return
-
-        if action == 'pin':
-            await station_repository.update_station(station_id=station.uuid, team_uuid=team.uuid)
-            await message.answer(f'Команда {team.name} успешно прикреплена к станции {station.title}')
-            await message.answer(f"Главное меню", reply_markup=organizer_buttons.main_menu_buttons())
-        elif action == 'unpin':
-            await station_repository.update_station(station_id=station.uuid, team_uuid=team.uuid)
-            await message.answer(f'Команда {team.name} успешно откреплена от станции {station.title}')
-            await message.answer(f"Главное меню", reply_markup=organizer_buttons.main_menu_buttons())
-        else:
-            raise Exception
-
+            await message.answer(f"Ваша следующая станция: {md.bold(current_station.title)}"
+                                 f"\n{md.bold(current_station.description)}", reply_markup=get_info())
+        elif change_flag == 1:
+            await message.answer(f"На данный момент все станции заняты, попробуйте запросить станцию позднее",
+                                 reply_markup=standby_kb())
+        elif change_flag == 2:
+            await message.answer(f"Поздравляем! Вы успешно прошли все станции.", reply_markup=standby_kb())
     except Exception as e:
-        await message.answer(f'Во время выполнения запроса произошла ошибка')
-        await message.answer(f"Главное меню", reply_markup=organizer_buttons.main_menu_buttons())
-
+        await message.answer(f"Во время смены станции произошла ошибка", reply_markup=standby_kb())
+    # await message.answer(text="Что-то сломалось, но вот меню", reply_markup=standby_kb())
