@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from repository.member_repository import MemberRepository
 from repository.team_repository import TeamRepository
 
-load_dotenv()
+# load_dotenv()
 member_repository = MemberRepository()
 team_repository = TeamRepository
 
@@ -14,8 +14,8 @@ async def is_organizer(username: str):
         user = await member_repository.get_id_by_username(username)
         team = await team_repository.get_team_by_id(user.team_uuid)
 
-        # org_team = os.environ.get("ORGANIZER_TEAM")
-        org_team = os.getenv("ORGANIZER_TEAM")
+        org_team = os.environ.get("ORGANIZER_TEAM")
+        # org_team = os.getenv("ORGANIZER_TEAM")
 
         return team.name == org_team, team.name
 

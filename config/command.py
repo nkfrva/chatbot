@@ -37,8 +37,7 @@ class Commands:
     pin_team_to_station = 'Прикрепить команду к станции'
     unpin_team_to_station = 'Открепить команду от станции'
     get_team_station = 'Посмотреть местоположение команд по станциям'
-    get_team_statistics = 'Получить подробную статистику о всех командах'
-    get_team_statistic = 'Получить подробную статистику о команде'
+    get_team_statistics = 'Получить статистику прохождения станций'
 
     menu_team = 'Команды'
     menu_task = 'Задания'

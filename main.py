@@ -4,10 +4,11 @@ from aiogram import Bot, Dispatcher
 from config.init_db import init_db
 from handlers import organizer_handler, member_handler, team_handler, task_handler, station_handler, base_handler
 import os
+from dotenv import load_dotenv
 
-
-# bot = Bot(os.environ.get("BOT_TOKEN"))
-bot = Bot(os.getenv("BOT_TOKEN2"))
+# load_dotenv()
+bot = Bot(os.environ.get("BOT_TOKEN"))
+# bot = Bot(os.getenv("BOT_TOKEN"))
 
 dp = Dispatcher()
 
