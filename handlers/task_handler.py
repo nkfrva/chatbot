@@ -13,7 +13,7 @@ from repository.leadboard_repository import LeadboardRepository
 from config.command import Commands
 from database_command import member_commands
 from database_command import verification
-from keyboards.member_buttons import start_member_kb, get_info
+from keyboards.member_buttons import start_member_kb, get_info, standby_kb
 from keyboards import organizer_buttons
 from handlers.station_handler import new_station
 
@@ -129,35 +129,54 @@ async def handle_task_answer(message: types.Message, state: FSMContext):
 # @router.message(Command(Commands.get_station))
 @router.message(lambda message: message.text == Commands.get_station)
 async def get_station(message: types.Message):
+    leadboard_repository = LeadboardRepository()
+
     result_verification, mess = await verification.is_member(message.from_user.username)
     if result_verification is False:
         await message.answer(mess, reply_markup=start_member_kb())
         return
 
     user_id = message.from_user.id
-    station = await member_commands.get_station(str(user_id))
-    if station:
-        await message.answer(f"Ваша текущая станция: {md.bold(station.title)} \n {md.bold(station.description)}",
-                             reply_markup=get_info())
-    else:
-        await message.answer("Вы не прикреплены к станции", reply_markup=get_info())
+    try:
+        station = await member_commands.get_station(str(user_id))
+        leadboard = await leadboard_repository.get_entries_from_leadboard()
+        if station:
+            await message.answer(f"Ваша текущая станция: {md.bold(station.title)} \n {md.bold(station.description)}",
+                                 reply_markup=get_info())
+        elif len(leadboard) == 0:
+            await message.answer("Вы не прикреплены к станции", reply_markup=get_info())
+        else:
+            await message.answer("Вы не прикреплены к станции", reply_markup=standby_kb())
+
+    except Exception as e:
+        await message.answer(text='Во время проверки текущей станции произошла ошибка', reply_markup=get_info())
 
 
 # @router.message(Command(Commands.get_task))
 @router.message(lambda message: message.text == Commands.get_task)
 async def get_task(message: types.Message):
+    leadboard_repository = LeadboardRepository()
+
     result_verification, mess = await verification.is_member(message.from_user.username)
     if result_verification is False:
         await message.answer(mess, reply_markup=start_member_kb())
         return
 
     user_id = message.from_user.id
-    task = await member_commands.get_task(str(user_id))
-    if task:
-        await message.answer(f"Задание: {md.bold(task.title)} \n {md.bold(task.description)}",
-                             reply_markup=get_info())
-    else:
-        await message.answer("На данный момент нет активных заданий", reply_markup=get_info())
+
+    try:
+        task = await member_commands.get_task(str(user_id))
+        leadboard = await leadboard_repository.get_entries_from_leadboard()
+        if task:
+            await message.answer(f"Задание: {md.bold(task.title)} \n {md.bold(task.description)}",
+                                 reply_markup=get_info())
+        elif len(leadboard) == 0:
+            await message.answer("На данный момент нет активных заданий", reply_markup=get_info())
+        else:
+            await message.answer("На данный момент нет активных заданий", reply_markup=standby_kb())
+
+    except Exception as e:
+        await message.answer(text='Во время проверки текущего задания произошла ошибка', reply_markup=get_info())
 
 
 # @router.message(Command(Commands.push_key))
@@ -186,9 +205,13 @@ async def handle_user_key(message: types.Message, state: FSMContext):
     current_station = await member_commands.get_station(str(user_id))
 
     task = await member_commands.get_task(str(user_id))
-    if task is None:
+    leadboard = await leadboard_repository.get_entries_from_leadboard()
+    if (task is None) and (len(leadboard) == 0):
         await message.answer(f"На данный момент вы не прикреплены к станции, поэтому ответ не может быть проверен",
                              reply_markup=get_info())
+    elif (task is None) and (len(leadboard) != 0):
+        await message.answer(f"На данный момент вы не прикреплены к станции, поэтому ответ не может быть проверен",
+                             reply_markup=standby_kb())
     else:
         bool_correctness = await member_commands.check_correct_response(str(user_id), task_user_key)
 

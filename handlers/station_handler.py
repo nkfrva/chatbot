@@ -42,7 +42,7 @@ async def get_station(message: types.Message, state: FSMContext):
     station_repository = StationRepository()
     stations = await station_repository.get_stations()
     try:
-        if stations is None:
+        if len(stations) == 0:
             await message.answer(f'Станций нет. Добавьте станцию.')
             await message.answer(f"Главное меню", reply_markup=organizer_buttons.main_menu_buttons())
             return
@@ -149,7 +149,8 @@ async def handle_task_uuid(message: types.Message, state: FSMContext):
 
 # region Automatic station assignment on command
 
-@router.message(lambda message: message.text == Commands.detach_team)
+# @router.message(lambda message: message.text == Commands.detach_team)
+@router.message(Command(Commands.detach_team))
 async def detach_team_from_station(message: types.Message):
     station_repository = StationRepository()
     member_repository = MemberRepository()
@@ -262,20 +263,23 @@ async def new_station(message: types.Message, team_gave_up=False):
     member = await member_repo.get_member_by_user_id(str(user_id))
     team_uuid = member.team_uuid
 
-    change_flag = await member_commands.change_station(str(user_id), current_time, team_gave_up)
-    current_station = await member_commands.get_station(str(user_id))
+    try:
+        change_flag = await member_commands.change_station(str(user_id), current_time, team_gave_up)
+        current_station = await member_commands.get_station(str(user_id))
 
-    if change_flag == 0:
-        new_statistic = TeamStatistic(start_time=current_time, station_uuid=current_station.uuid,
-                                      team_uuid=team_uuid)
-        await team_statistic_repository.create_team_statistic(new_statistic)
+        if change_flag == 0:
+            new_statistic = TeamStatistic(start_time=current_time, station_uuid=current_station.uuid,
+                                          team_uuid=team_uuid)
+            await team_statistic_repository.create_team_statistic(new_statistic)
 
-        await message.answer(f"Ваша следующая станция: {md.bold(current_station.title)}"
-                             f"\n{md.bold(current_station.description)}", reply_markup=get_info())
-    elif change_flag == 1:
-        await message.answer(f"На данный момент все станции заняты, попробуйте запросить станцию позднее",
-                             reply_markup=standby_kb())
-    elif change_flag == 2:
-        await message.answer(f"Поздравляем! Вы успешно прошли все станции.", reply_markup=standby_kb())
+            await message.answer(f"Ваша следующая станция: {md.bold(current_station.title)}"
+                                 f"\n{md.bold(current_station.description)}", reply_markup=get_info())
+        elif change_flag == 1:
+            await message.answer(f"На данный момент все станции заняты, попробуйте запросить станцию позднее",
+                                 reply_markup=standby_kb())
+        elif change_flag == 2:
+            await message.answer(f"Поздравляем! Вы успешно прошли все станции.", reply_markup=standby_kb())
+    except Exception as e:
+        await message.answer(f"Во время смены станции произошла ошибка", reply_markup=standby_kb())
+    # await message.answer(text="Что-то сломалось, но вот меню", reply_markup=standby_kb())
 
-    await message.answer(reply_markup=standby_kb())

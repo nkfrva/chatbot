@@ -10,9 +10,9 @@ from repository.team_repository import TeamRepository
 from repository.leadboard_repository import LeadboardRepository
 from database_command import verification
 from config.command import Commands
-from keyboards.member_buttons import get_info
-from keyboards.member_buttons import start_member_kb
+from keyboards.member_buttons import get_info, standby_kb, start_member_kb
 from keyboards import organizer_buttons
+from database_command import member_commands
 
 router = Router()
 
@@ -66,6 +66,9 @@ async def get_leadboard(message: Message):
     leadboard_repository = LeadboardRepository()
     team_repository = TeamRepository()
 
+    user_id = message.from_user.id
+    current_station = await member_commands.get_station(str(user_id))
+
     await message.answer("leadboard: \n")
 
     leadboard_entries = await leadboard_repository.get_entries_from_leadboard()
@@ -82,4 +85,7 @@ async def get_leadboard(message: Message):
                              f"Пройдено станций: {entry.points}\n"
                              f"Общее время прохождения станций: {entry.passage_time}\n\n")
 
-    await message.answer(text=leadboard_string, reply_markup=kb)
+    if current_station is None:
+        await message.answer(text=leadboard_string, reply_markup=standby_kb())
+    else:
+        await message.answer(text=leadboard_string, reply_markup=kb)
