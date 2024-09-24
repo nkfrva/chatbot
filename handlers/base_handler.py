@@ -6,7 +6,6 @@ from config.command import Commands
 from config.help_messages import HelpMessages
 from keyboards import organizer_buttons, member_buttons
 from database_command import verification
-from keyboards.member_buttons import start_member_kb, get_info
 import os
 
 
@@ -34,7 +33,9 @@ async def help_command(message: Message):
 
 @router.message(Command(Commands.start))
 async def start_command(message: Message):
-    await message.answer("Добро пожаловать! Присоединитесь к команде для начала работы:",
+    await message.answer("Добро пожаловать! Присоединитесь к команде для начала работы:"
+                         "\nДля этого введите токен (токен выдается организатором)\n"
+                         "Также всегда доступна кнопка /help",
                          reply_markup=member_buttons.start_member_kb())
 
 
