@@ -13,6 +13,7 @@ from keyboards import organizer_buttons
 from keyboards.member_buttons import start_member_kb, get_info
 from repository.station_repository import StationRepository
 from repository.task_repository import TaskRepository
+from repository.team_statistic_repository import TeamStatisticRepository
 from datetime import datetime
 from config.help_messages import HelpMessages
 
@@ -337,6 +338,41 @@ async def get_team_station(message: types.Message):
 
         result = '\n'.join(f'{station.title}:'
                            f'{find_team_by_station(teams, station.team_uuid)}' for station in stations)
+        await message.answer(result, reply_markup=organizer_buttons.main_menu_buttons())
+
+    except Exception as e:
+        await message.answer(f'Во время выполнения произошла ошибка {e}')
+        await message.answer(text='Главное меню', reply_markup=organizer_buttons.main_menu_buttons())
+
+
+@router.message(lambda message: message.text == Commands.get_team_statistics)
+async def get_team_statistics(message: types.Message):
+    is_org, team = await verification.is_organizer(message.from_user.username)
+    if is_org is False:
+        kb = start_member_kb() if team is None else get_info()
+        await message.answer(text='У вас нет прав доступа для выполнения данной команды.', reply_markup=kb)
+
+    team_repository = TeamRepository()
+    station_repository = StationRepository()
+    team_statistic_repository = TeamStatisticRepository()
+    try:
+        stations = await station_repository.get_stations()
+        teams = await team_repository.get_teams()
+
+        result = '\tНа данный момент команды прошли следующие станции:'
+        for team in teams:
+            if team.name != 'ORGANIZER':
+                print(f'Команда: {team.name}')
+                result += f'\n\nКоманда: {team.name}'
+                team_statistics = await team_statistic_repository.get_passed_stations_by_team_id(team.uuid)
+                for team_statistic in team_statistics:
+                    if team_statistic.finish_time != 'time':
+                        print(team_statistic.start_time)
+                        station = await station_repository.get_station_by_id(team_statistic.station_uuid)
+                        result += (f'\nСтанция: {station.title}, '
+                                   f'начало выполнения задания: {team_statistic.start_time}, '
+                                   f'прошли станцию: {team_statistic.finish_time}, '
+                                   f'получено очков: {team_statistic.point}')
         await message.answer(result, reply_markup=organizer_buttons.main_menu_buttons())
 
     except Exception as e:
